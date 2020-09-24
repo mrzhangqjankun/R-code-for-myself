@@ -1,0 +1,116 @@
+DATASET_DOMAINS
+SEPARATOR TAB
+BACKBONE_COLOR	#FFFFFF
+BACKBONE_HEIGHT	0
+BORDER_WIDTH	0.5
+COLOR	#bebada
+DATASET_LABEL	Family
+HEIGHT_FACTOR	1
+LEGEND_COLORS	#fb9a99	#33a02c	#b2df8a	#1f78b4	#a6cee3	#fb9a99	#33a02c	#b2df8a	#1f78b4	#a6cee3	#fb9a99	#33a02c	#b2df8a	#1f78b4	#a6cee3	#fb9a99	#33a02c	#b2df8a	#1f78b4	#a6cee3	#fb9a99	#33a02c	#b2df8a	#1f78b4	#a6cee3
+LEGEND_LABELS	Bacillaceae_1	Bradyrhizobiaceae	Burkholderiales_incertae_sedis	Caulobacteraceae	Chloroplast	Comamonadaceae	Flavobacteriaceae	Herpetosiphonaceae	Hyphomicrobiaceae	Kineosporiaceae	Microbacteriaceae	Micromonosporaceae	Nocardioidaceae	Oxalobacteraceae	Pseudomonadaceae	Pseudonocardiaceae	Rhizobiaceae	Rhodospirillaceae	Sandaracinaceae	Sinobacteraceae	Sphingomonadaceae	Streptomycetaceae	Thermomonosporaceae	Unassigned	Xanthomonadaceae
+LEGEND_SHAPES	EL	EL	EL	EL	EL	RE	RE	RE	RE	RE	TL	TL	TL	TL	TL	TR	TR	TR	TR	TR	DI	DI	DI	DI	DI
+LEGEND_TITLE	Family
+MARGIN	5
+SHOW_DOMAIN_LABELS	0
+WIDTH	25
+DATA
+OTU_657	10	DI|0|10|#b2df8a|Thermomonosporaceae
+OTU_2	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_3	10	TL|0|10|#a6cee3|Pseudomonadaceae
+OTU_4	10	TL|0|10|#a6cee3|Pseudomonadaceae
+OTU_5	10	EL|0|10|#a6cee3|Chloroplast
+OTU_6	10	EL|0|10|#b2df8a|Burkholderiales_incertae_sedis
+OTU_8	10	DI|0|10|#33a02c|Streptomycetaceae
+OTU_7	10	RE|0|10|#33a02c|Flavobacteriaceae
+OTU_9	10	TL|0|10|#33a02c|Micromonosporaceae
+OTU_10	10	TR|0|10|#33a02c|Rhizobiaceae
+OTU_17	10	DI|0|10|#1f78b4|Unassigned
+OTU_11	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_13	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_14	10	DI|0|10|#1f78b4|Unassigned
+OTU_15	10	EL|0|10|#33a02c|Bradyrhizobiaceae
+OTU_12	10	RE|0|10|#33a02c|Flavobacteriaceae
+OTU_16	10	DI|0|10|#33a02c|Streptomycetaceae
+OTU_18	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_28	10	DI|0|10|#b2df8a|Thermomonosporaceae
+OTU_19	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_20	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_31	10	TL|0|10|#33a02c|Micromonosporaceae
+OTU_33	10	TR|0|10|#a6cee3|Sinobacteraceae
+OTU_25	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_21	10	TL|0|10|#b2df8a|Nocardioidaceae
+OTU_22	10	DI|0|10|#1f78b4|Unassigned
+OTU_26	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_24	10	DI|0|10|#fb9a99|Sphingomonadaceae
+OTU_23	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_27	10	EL|0|10|#33a02c|Bradyrhizobiaceae
+OTU_29	10	TR|0|10|#33a02c|Rhizobiaceae
+OTU_30	10	EL|0|10|#b2df8a|Burkholderiales_incertae_sedis
+OTU_32	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_1227	10	RE|0|10|#a6cee3|Kineosporiaceae
+OTU_35	10	DI|0|10|#1f78b4|Unassigned
+OTU_36	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_43	10	EL|0|10|#fb9a99|Bacillaceae_1
+OTU_37	10	TR|0|10|#a6cee3|Sinobacteraceae
+OTU_47	10	DI|0|10|#1f78b4|Unassigned
+OTU_1128	10	TL|0|10|#33a02c|Micromonosporaceae
+OTU_38	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_39	10	DI|0|10|#1f78b4|Unassigned
+OTU_41	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_42	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_46	10	TR|0|10|#a6cee3|Sinobacteraceae
+OTU_45	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_69	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_48	10	TR|0|10|#33a02c|Rhizobiaceae
+OTU_44	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_40	10	RE|0|10|#b2df8a|Herpetosiphonaceae
+OTU_50	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_547	10	EL|0|10|#b2df8a|Burkholderiales_incertae_sedis
+OTU_49	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_68	10	DI|0|10|#1f78b4|Unassigned
+OTU_85	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_51	10	RE|0|10|#33a02c|Flavobacteriaceae
+OTU_53	10	TL|0|10|#fb9a99|Microbacteriaceae
+OTU_54	10	DI|0|10|#1f78b4|Unassigned
+OTU_57	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_593	10	EL|0|10|#b2df8a|Burkholderiales_incertae_sedis
+OTU_71	10	DI|0|10|#fb9a99|Sphingomonadaceae
+OTU_56	10	RE|0|10|#1f78b4|Hyphomicrobiaceae
+OTU_59	10	TL|0|10|#b2df8a|Nocardioidaceae
+OTU_62	10	TR|0|10|#33a02c|Rhizobiaceae
+OTU_67	10	TL|0|10|#a6cee3|Pseudomonadaceae
+OTU_428	10	DI|0|10|#1f78b4|Unassigned
+OTU_60	10	DI|0|10|#1f78b4|Unassigned
+OTU_61	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_65	10	EL|0|10|#33a02c|Bradyrhizobiaceae
+OTU_63	10	EL|0|10|#1f78b4|Caulobacteraceae
+OTU_77	10	TR|0|10|#a6cee3|Sinobacteraceae
+OTU_66	10	TR|0|10|#b2df8a|Rhodospirillaceae
+OTU_94	10	DI|0|10|#1f78b4|Unassigned
+OTU_72	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_70	10	DI|0|10|#a6cee3|Xanthomonadaceae
+OTU_73	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_74	10	EL|0|10|#33a02c|Bradyrhizobiaceae
+OTU_79	10	DI|0|10|#1f78b4|Unassigned
+OTU_81	10	DI|0|10|#1f78b4|Unassigned
+OTU_427	10	DI|0|10|#1f78b4|Unassigned
+OTU_76	10	DI|0|10|#a6cee3|Xanthomonadaceae
+OTU_75	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_80	10	DI|0|10|#a6cee3|Xanthomonadaceae
+OTU_90	10	TL|0|10|#a6cee3|Pseudomonadaceae
+OTU_86	10	TL|0|10|#33a02c|Micromonosporaceae
+OTU_84	10	DI|0|10|#1f78b4|Unassigned
+OTU_78	10	RE|0|10|#b2df8a|Herpetosiphonaceae
+OTU_91	10	DI|0|10|#1f78b4|Unassigned
+OTU_87	10	TL|0|10|#b2df8a|Nocardioidaceae
+OTU_83	10	TL|0|10|#1f78b4|Oxalobacteraceae
+OTU_88	10	DI|0|10|#1f78b4|Unassigned
+OTU_89	10	TR|0|10|#a6cee3|Sinobacteraceae
+OTU_93	10	DI|0|10|#a6cee3|Xanthomonadaceae
+OTU_102	10	DI|0|10|#1f78b4|Unassigned
+OTU_92	10	TR|0|10|#fb9a99|Pseudonocardiaceae
+OTU_101	10	DI|0|10|#1f78b4|Unassigned
+OTU_114	10	TR|0|10|#1f78b4|Sandaracinaceae
+OTU_100	10	RE|0|10|#fb9a99|Comamonadaceae
+OTU_96	10	RE|0|10|#1f78b4|Hyphomicrobiaceae
+OTU_106	10	DI|0|10|#33a02c|Streptomycetaceae

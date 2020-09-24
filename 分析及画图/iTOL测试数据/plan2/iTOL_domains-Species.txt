@@ -1,0 +1,116 @@
+DATASET_DOMAINS
+SEPARATOR TAB
+BACKBONE_COLOR	#FFFFFF
+BACKBONE_HEIGHT	0
+BORDER_WIDTH	0.5
+COLOR	#bebada
+DATASET_LABEL	Species
+HEIGHT_FACTOR	1
+LEGEND_COLORS	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#a6cee3	#1f78b4	#b2df8a
+LEGEND_LABELS	Actinocorallia_glomerata	Actinoplanes_friuliensis	Amycolatopsis_umgeniensis	Bradyrhizobium_icense	Couchioplanes_caeruleus_subsp._azureus	Devosia_insulae	Dongia_mobilis	Ensifer_adhaerens	Flavobacterium_terrae	Kibdelosporangium_phytohabitans	Kineosporia_rhamnosa	Kinneretia_asaccharophila	Kribbella_flavida	Lentzea_albida	Lentzea_flaviverrucosa	Lysobacter_brunescens	Phenylobacterium_lituiforme	Piscinibacter_aquaticus	Pseudoxanthomonas_gei	Pseudoxanthomonas_mexicana	Sandaracinus_amylolyticus	Steroidobacter_agariperforans	Steroidobacter_denitrificans	Streptomyces_deccanensis	Streptomyces_torulosus	Unassigned	Variovorax_paradoxus
+LEGEND_SHAPES	EL	EL	EL	EL	EL	EL	RE	RE	RE	RE	RE	RE	TL	TL	TL	TL	TL	TL	TR	TR	TR	TR	TR	TR	DI	DI	DI
+LEGEND_TITLE	Species
+MARGIN	5
+SHOW_DOMAIN_LABELS	0
+WIDTH	25
+DATA
+OTU_657	10	EL|0|10|#a6cee3|Actinocorallia_glomerata
+OTU_2	10	DI|0|10|#1f78b4|Unassigned
+OTU_3	10	DI|0|10|#1f78b4|Unassigned
+OTU_4	10	DI|0|10|#1f78b4|Unassigned
+OTU_5	10	DI|0|10|#1f78b4|Unassigned
+OTU_6	10	DI|0|10|#1f78b4|Unassigned
+OTU_8	10	TR|0|10|#e31a1c|Streptomyces_deccanensis
+OTU_7	10	DI|0|10|#1f78b4|Unassigned
+OTU_9	10	EL|0|10|#1f78b4|Actinoplanes_friuliensis
+OTU_10	10	DI|0|10|#1f78b4|Unassigned
+OTU_17	10	DI|0|10|#1f78b4|Unassigned
+OTU_11	10	DI|0|10|#1f78b4|Unassigned
+OTU_13	10	DI|0|10|#1f78b4|Unassigned
+OTU_14	10	DI|0|10|#1f78b4|Unassigned
+OTU_15	10	EL|0|10|#33a02c|Bradyrhizobium_icense
+OTU_12	10	RE|0|10|#b2df8a|Flavobacterium_terrae
+OTU_16	10	DI|0|10|#1f78b4|Unassigned
+OTU_18	10	TL|0|10|#b2df8a|Lentzea_flaviverrucosa
+OTU_28	10	DI|0|10|#1f78b4|Unassigned
+OTU_19	10	TL|0|10|#b2df8a|Lentzea_flaviverrucosa
+OTU_20	10	EL|0|10|#b2df8a|Amycolatopsis_umgeniensis
+OTU_31	10	DI|0|10|#1f78b4|Unassigned
+OTU_33	10	DI|0|10|#1f78b4|Unassigned
+OTU_25	10	DI|0|10|#1f78b4|Unassigned
+OTU_21	10	TL|0|10|#a6cee3|Kribbella_flavida
+OTU_22	10	DI|0|10|#1f78b4|Unassigned
+OTU_26	10	DI|0|10|#1f78b4|Unassigned
+OTU_24	10	DI|0|10|#1f78b4|Unassigned
+OTU_23	10	DI|0|10|#1f78b4|Unassigned
+OTU_27	10	EL|0|10|#33a02c|Bradyrhizobium_icense
+OTU_29	10	DI|0|10|#1f78b4|Unassigned
+OTU_30	10	DI|0|10|#1f78b4|Unassigned
+OTU_32	10	RE|0|10|#e31a1c|Kinneretia_asaccharophila
+OTU_1227	10	RE|0|10|#fb9a99|Kineosporia_rhamnosa
+OTU_35	10	DI|0|10|#1f78b4|Unassigned
+OTU_36	10	DI|0|10|#1f78b4|Unassigned
+OTU_43	10	DI|0|10|#1f78b4|Unassigned
+OTU_37	10	DI|0|10|#1f78b4|Unassigned
+OTU_47	10	DI|0|10|#1f78b4|Unassigned
+OTU_1128	10	DI|0|10|#1f78b4|Unassigned
+OTU_38	10	DI|0|10|#1f78b4|Unassigned
+OTU_39	10	DI|0|10|#1f78b4|Unassigned
+OTU_41	10	DI|0|10|#1f78b4|Unassigned
+OTU_42	10	DI|0|10|#1f78b4|Unassigned
+OTU_46	10	DI|0|10|#1f78b4|Unassigned
+OTU_45	10	DI|0|10|#1f78b4|Unassigned
+OTU_69	10	RE|0|10|#33a02c|Kibdelosporangium_phytohabitans
+OTU_48	10	RE|0|10|#1f78b4|Ensifer_adhaerens
+OTU_44	10	RE|0|10|#e31a1c|Kinneretia_asaccharophila
+OTU_40	10	DI|0|10|#1f78b4|Unassigned
+OTU_50	10	DI|0|10|#1f78b4|Unassigned
+OTU_547	10	TL|0|10|#e31a1c|Piscinibacter_aquaticus
+OTU_49	10	TL|0|10|#1f78b4|Lentzea_albida
+OTU_68	10	DI|0|10|#1f78b4|Unassigned
+OTU_85	10	DI|0|10|#1f78b4|Unassigned
+OTU_51	10	DI|0|10|#1f78b4|Unassigned
+OTU_53	10	DI|0|10|#1f78b4|Unassigned
+OTU_54	10	DI|0|10|#1f78b4|Unassigned
+OTU_57	10	DI|0|10|#1f78b4|Unassigned
+OTU_593	10	DI|0|10|#1f78b4|Unassigned
+OTU_71	10	DI|0|10|#1f78b4|Unassigned
+OTU_56	10	DI|0|10|#1f78b4|Unassigned
+OTU_59	10	DI|0|10|#1f78b4|Unassigned
+OTU_62	10	DI|0|10|#1f78b4|Unassigned
+OTU_67	10	DI|0|10|#1f78b4|Unassigned
+OTU_428	10	DI|0|10|#1f78b4|Unassigned
+OTU_60	10	DI|0|10|#1f78b4|Unassigned
+OTU_61	10	DI|0|10|#1f78b4|Unassigned
+OTU_65	10	DI|0|10|#1f78b4|Unassigned
+OTU_63	10	TL|0|10|#fb9a99|Phenylobacterium_lituiforme
+OTU_77	10	TR|0|10|#fb9a99|Steroidobacter_denitrificans
+OTU_66	10	RE|0|10|#a6cee3|Dongia_mobilis
+OTU_94	10	DI|0|10|#1f78b4|Unassigned
+OTU_72	10	DI|0|10|#b2df8a|Variovorax_paradoxus
+OTU_70	10	TR|0|10|#a6cee3|Pseudoxanthomonas_gei
+OTU_73	10	DI|0|10|#1f78b4|Unassigned
+OTU_74	10	EL|0|10|#33a02c|Bradyrhizobium_icense
+OTU_79	10	DI|0|10|#1f78b4|Unassigned
+OTU_81	10	DI|0|10|#1f78b4|Unassigned
+OTU_427	10	DI|0|10|#1f78b4|Unassigned
+OTU_76	10	DI|0|10|#1f78b4|Unassigned
+OTU_75	10	DI|0|10|#1f78b4|Unassigned
+OTU_80	10	TR|0|10|#1f78b4|Pseudoxanthomonas_mexicana
+OTU_90	10	DI|0|10|#1f78b4|Unassigned
+OTU_86	10	EL|0|10|#fb9a99|Couchioplanes_caeruleus_subsp._azureus
+OTU_84	10	DI|0|10|#1f78b4|Unassigned
+OTU_78	10	DI|0|10|#1f78b4|Unassigned
+OTU_91	10	DI|0|10|#1f78b4|Unassigned
+OTU_87	10	DI|0|10|#1f78b4|Unassigned
+OTU_83	10	DI|0|10|#1f78b4|Unassigned
+OTU_88	10	DI|0|10|#1f78b4|Unassigned
+OTU_89	10	TR|0|10|#33a02c|Steroidobacter_agariperforans
+OTU_93	10	TL|0|10|#33a02c|Lysobacter_brunescens
+OTU_102	10	DI|0|10|#1f78b4|Unassigned
+OTU_92	10	DI|0|10|#1f78b4|Unassigned
+OTU_101	10	DI|0|10|#1f78b4|Unassigned
+OTU_114	10	TR|0|10|#b2df8a|Sandaracinus_amylolyticus
+OTU_100	10	DI|0|10|#1f78b4|Unassigned
+OTU_96	10	EL|0|10|#e31a1c|Devosia_insulae
+OTU_106	10	DI|0|10|#a6cee3|Streptomyces_torulosus

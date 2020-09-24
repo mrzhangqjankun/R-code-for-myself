@@ -1,0 +1,112 @@
+DATASET_COLORSTRIP
+SEPARATOR TAB
+BORDER_WIDTH	0
+COLOR	#bebada
+DATASET_LABEL	Phylum
+LEGEND_COLORS	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#fdbf6f
+LEGEND_LABELS	Actinobacteria	Bacteroidetes	Chloroflexi	Cyanobacteria	Firmicutes	Proteobacteria	Unassigned
+LEGEND_SHAPES	1	1	1	1	1	1	1
+LEGEND_TITLE	Phylum
+MARGIN	5
+STRIP_WIDTH	25
+DATA
+OTU_657	#a6cee3	Actinobacteria
+OTU_2	#e31a1c	Proteobacteria
+OTU_3	#e31a1c	Proteobacteria
+OTU_4	#e31a1c	Proteobacteria
+OTU_5	#33a02c	Cyanobacteria
+OTU_6	#e31a1c	Proteobacteria
+OTU_8	#a6cee3	Actinobacteria
+OTU_7	#1f78b4	Bacteroidetes
+OTU_9	#a6cee3	Actinobacteria
+OTU_10	#e31a1c	Proteobacteria
+OTU_17	#e31a1c	Proteobacteria
+OTU_11	#e31a1c	Proteobacteria
+OTU_13	#e31a1c	Proteobacteria
+OTU_14	#e31a1c	Proteobacteria
+OTU_15	#e31a1c	Proteobacteria
+OTU_12	#1f78b4	Bacteroidetes
+OTU_16	#a6cee3	Actinobacteria
+OTU_18	#a6cee3	Actinobacteria
+OTU_28	#a6cee3	Actinobacteria
+OTU_19	#a6cee3	Actinobacteria
+OTU_20	#a6cee3	Actinobacteria
+OTU_31	#a6cee3	Actinobacteria
+OTU_33	#e31a1c	Proteobacteria
+OTU_25	#a6cee3	Actinobacteria
+OTU_21	#a6cee3	Actinobacteria
+OTU_22	#e31a1c	Proteobacteria
+OTU_26	#a6cee3	Actinobacteria
+OTU_24	#e31a1c	Proteobacteria
+OTU_23	#a6cee3	Actinobacteria
+OTU_27	#e31a1c	Proteobacteria
+OTU_29	#e31a1c	Proteobacteria
+OTU_30	#e31a1c	Proteobacteria
+OTU_32	#e31a1c	Proteobacteria
+OTU_1227	#a6cee3	Actinobacteria
+OTU_35	#e31a1c	Proteobacteria
+OTU_36	#e31a1c	Proteobacteria
+OTU_43	#fb9a99	Firmicutes
+OTU_37	#e31a1c	Proteobacteria
+OTU_47	#e31a1c	Proteobacteria
+OTU_1128	#a6cee3	Actinobacteria
+OTU_38	#e31a1c	Proteobacteria
+OTU_39	#e31a1c	Proteobacteria
+OTU_41	#e31a1c	Proteobacteria
+OTU_42	#a6cee3	Actinobacteria
+OTU_46	#e31a1c	Proteobacteria
+OTU_45	#a6cee3	Actinobacteria
+OTU_69	#a6cee3	Actinobacteria
+OTU_48	#e31a1c	Proteobacteria
+OTU_44	#e31a1c	Proteobacteria
+OTU_40	#b2df8a	Chloroflexi
+OTU_50	#e31a1c	Proteobacteria
+OTU_547	#e31a1c	Proteobacteria
+OTU_49	#a6cee3	Actinobacteria
+OTU_68	#e31a1c	Proteobacteria
+OTU_85	#e31a1c	Proteobacteria
+OTU_51	#1f78b4	Bacteroidetes
+OTU_53	#a6cee3	Actinobacteria
+OTU_54	#fdbf6f	Unassigned
+OTU_57	#e31a1c	Proteobacteria
+OTU_593	#e31a1c	Proteobacteria
+OTU_71	#e31a1c	Proteobacteria
+OTU_56	#e31a1c	Proteobacteria
+OTU_59	#a6cee3	Actinobacteria
+OTU_62	#e31a1c	Proteobacteria
+OTU_67	#e31a1c	Proteobacteria
+OTU_428	#e31a1c	Proteobacteria
+OTU_60	#e31a1c	Proteobacteria
+OTU_61	#e31a1c	Proteobacteria
+OTU_65	#e31a1c	Proteobacteria
+OTU_63	#e31a1c	Proteobacteria
+OTU_77	#e31a1c	Proteobacteria
+OTU_66	#e31a1c	Proteobacteria
+OTU_94	#e31a1c	Proteobacteria
+OTU_72	#e31a1c	Proteobacteria
+OTU_70	#e31a1c	Proteobacteria
+OTU_73	#e31a1c	Proteobacteria
+OTU_74	#e31a1c	Proteobacteria
+OTU_79	#e31a1c	Proteobacteria
+OTU_81	#e31a1c	Proteobacteria
+OTU_427	#a6cee3	Actinobacteria
+OTU_76	#e31a1c	Proteobacteria
+OTU_75	#e31a1c	Proteobacteria
+OTU_80	#e31a1c	Proteobacteria
+OTU_90	#e31a1c	Proteobacteria
+OTU_86	#a6cee3	Actinobacteria
+OTU_84	#e31a1c	Proteobacteria
+OTU_78	#b2df8a	Chloroflexi
+OTU_91	#e31a1c	Proteobacteria
+OTU_87	#a6cee3	Actinobacteria
+OTU_83	#e31a1c	Proteobacteria
+OTU_88	#e31a1c	Proteobacteria
+OTU_89	#e31a1c	Proteobacteria
+OTU_93	#e31a1c	Proteobacteria
+OTU_102	#e31a1c	Proteobacteria
+OTU_92	#a6cee3	Actinobacteria
+OTU_101	#e31a1c	Proteobacteria
+OTU_114	#e31a1c	Proteobacteria
+OTU_100	#e31a1c	Proteobacteria
+OTU_96	#e31a1c	Proteobacteria
+OTU_106	#a6cee3	Actinobacteria

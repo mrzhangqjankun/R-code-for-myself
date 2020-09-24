@@ -1,0 +1,112 @@
+DATASET_COLORSTRIP
+SEPARATOR TAB
+BORDER_WIDTH	0.5
+COLOR	#bebada
+DATASET_LABEL	Class
+LEGEND_COLORS	#a6cee3	#1f78b4	#b2df8a	#33a02c	#fb9a99	#e31a1c	#fdbf6f	#ff7f00	#cab2d6	#6a3d9a
+LEGEND_LABELS	Actinobacteria	Alphaproteobacteria	Bacilli	Betaproteobacteria	Chloroflexia	Chloroplast	Deltaproteobacteria	Flavobacteriia	Gammaproteobacteria	Unassigned
+LEGEND_SHAPES	1	1	1	1	1	1	1	1	1	1
+LEGEND_TITLE	Class
+MARGIN	5
+STRIP_WIDTH	25
+DATA
+OTU_657	#a6cee3	Actinobacteria
+OTU_2	#33a02c	Betaproteobacteria
+OTU_3	#cab2d6	Gammaproteobacteria
+OTU_4	#cab2d6	Gammaproteobacteria
+OTU_5	#e31a1c	Chloroplast
+OTU_6	#33a02c	Betaproteobacteria
+OTU_8	#a6cee3	Actinobacteria
+OTU_7	#ff7f00	Flavobacteriia
+OTU_9	#a6cee3	Actinobacteria
+OTU_10	#1f78b4	Alphaproteobacteria
+OTU_17	#33a02c	Betaproteobacteria
+OTU_11	#33a02c	Betaproteobacteria
+OTU_13	#33a02c	Betaproteobacteria
+OTU_14	#33a02c	Betaproteobacteria
+OTU_15	#1f78b4	Alphaproteobacteria
+OTU_12	#ff7f00	Flavobacteriia
+OTU_16	#a6cee3	Actinobacteria
+OTU_18	#a6cee3	Actinobacteria
+OTU_28	#a6cee3	Actinobacteria
+OTU_19	#a6cee3	Actinobacteria
+OTU_20	#a6cee3	Actinobacteria
+OTU_31	#a6cee3	Actinobacteria
+OTU_33	#cab2d6	Gammaproteobacteria
+OTU_25	#a6cee3	Actinobacteria
+OTU_21	#a6cee3	Actinobacteria
+OTU_22	#1f78b4	Alphaproteobacteria
+OTU_26	#a6cee3	Actinobacteria
+OTU_24	#1f78b4	Alphaproteobacteria
+OTU_23	#a6cee3	Actinobacteria
+OTU_27	#1f78b4	Alphaproteobacteria
+OTU_29	#1f78b4	Alphaproteobacteria
+OTU_30	#33a02c	Betaproteobacteria
+OTU_32	#33a02c	Betaproteobacteria
+OTU_1227	#a6cee3	Actinobacteria
+OTU_35	#33a02c	Betaproteobacteria
+OTU_36	#33a02c	Betaproteobacteria
+OTU_43	#b2df8a	Bacilli
+OTU_37	#cab2d6	Gammaproteobacteria
+OTU_47	#33a02c	Betaproteobacteria
+OTU_1128	#a6cee3	Actinobacteria
+OTU_38	#33a02c	Betaproteobacteria
+OTU_39	#33a02c	Betaproteobacteria
+OTU_41	#33a02c	Betaproteobacteria
+OTU_42	#a6cee3	Actinobacteria
+OTU_46	#cab2d6	Gammaproteobacteria
+OTU_45	#a6cee3	Actinobacteria
+OTU_69	#a6cee3	Actinobacteria
+OTU_48	#1f78b4	Alphaproteobacteria
+OTU_44	#33a02c	Betaproteobacteria
+OTU_40	#fb9a99	Chloroflexia
+OTU_50	#33a02c	Betaproteobacteria
+OTU_547	#33a02c	Betaproteobacteria
+OTU_49	#a6cee3	Actinobacteria
+OTU_68	#1f78b4	Alphaproteobacteria
+OTU_85	#33a02c	Betaproteobacteria
+OTU_51	#ff7f00	Flavobacteriia
+OTU_53	#a6cee3	Actinobacteria
+OTU_54	#6a3d9a	Unassigned
+OTU_57	#33a02c	Betaproteobacteria
+OTU_593	#33a02c	Betaproteobacteria
+OTU_71	#1f78b4	Alphaproteobacteria
+OTU_56	#1f78b4	Alphaproteobacteria
+OTU_59	#a6cee3	Actinobacteria
+OTU_62	#1f78b4	Alphaproteobacteria
+OTU_67	#cab2d6	Gammaproteobacteria
+OTU_428	#fdbf6f	Deltaproteobacteria
+OTU_60	#33a02c	Betaproteobacteria
+OTU_61	#33a02c	Betaproteobacteria
+OTU_65	#1f78b4	Alphaproteobacteria
+OTU_63	#1f78b4	Alphaproteobacteria
+OTU_77	#cab2d6	Gammaproteobacteria
+OTU_66	#1f78b4	Alphaproteobacteria
+OTU_94	#6a3d9a	Unassigned
+OTU_72	#33a02c	Betaproteobacteria
+OTU_70	#cab2d6	Gammaproteobacteria
+OTU_73	#33a02c	Betaproteobacteria
+OTU_74	#1f78b4	Alphaproteobacteria
+OTU_79	#33a02c	Betaproteobacteria
+OTU_81	#6a3d9a	Unassigned
+OTU_427	#a6cee3	Actinobacteria
+OTU_76	#cab2d6	Gammaproteobacteria
+OTU_75	#33a02c	Betaproteobacteria
+OTU_80	#cab2d6	Gammaproteobacteria
+OTU_90	#cab2d6	Gammaproteobacteria
+OTU_86	#a6cee3	Actinobacteria
+OTU_84	#6a3d9a	Unassigned
+OTU_78	#fb9a99	Chloroflexia
+OTU_91	#fdbf6f	Deltaproteobacteria
+OTU_87	#a6cee3	Actinobacteria
+OTU_83	#33a02c	Betaproteobacteria
+OTU_88	#6a3d9a	Unassigned
+OTU_89	#cab2d6	Gammaproteobacteria
+OTU_93	#cab2d6	Gammaproteobacteria
+OTU_102	#cab2d6	Gammaproteobacteria
+OTU_92	#a6cee3	Actinobacteria
+OTU_101	#fdbf6f	Deltaproteobacteria
+OTU_114	#fdbf6f	Deltaproteobacteria
+OTU_100	#33a02c	Betaproteobacteria
+OTU_96	#1f78b4	Alphaproteobacteria
+OTU_106	#a6cee3	Actinobacteria

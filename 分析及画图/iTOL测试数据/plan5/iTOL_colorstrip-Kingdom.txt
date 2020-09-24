@@ -1,0 +1,112 @@
+DATASET_COLORSTRIP
+SEPARATOR TAB
+BORDER_WIDTH	0.5
+COLOR	#bebada
+DATASET_LABEL	Kingdom
+LEGEND_COLORS	#1b9e77
+LEGEND_LABELS	Bacteria
+LEGEND_SHAPES	1
+LEGEND_TITLE	Kingdom
+MARGIN	5
+STRIP_WIDTH	25
+DATA
+OTU_657	#1b9e77	Bacteria
+OTU_2	#1b9e77	Bacteria
+OTU_3	#1b9e77	Bacteria
+OTU_4	#1b9e77	Bacteria
+OTU_5	#1b9e77	Bacteria
+OTU_6	#1b9e77	Bacteria
+OTU_8	#1b9e77	Bacteria
+OTU_7	#1b9e77	Bacteria
+OTU_9	#1b9e77	Bacteria
+OTU_10	#1b9e77	Bacteria
+OTU_17	#1b9e77	Bacteria
+OTU_11	#1b9e77	Bacteria
+OTU_13	#1b9e77	Bacteria
+OTU_14	#1b9e77	Bacteria
+OTU_15	#1b9e77	Bacteria
+OTU_12	#1b9e77	Bacteria
+OTU_16	#1b9e77	Bacteria
+OTU_18	#1b9e77	Bacteria
+OTU_28	#1b9e77	Bacteria
+OTU_19	#1b9e77	Bacteria
+OTU_20	#1b9e77	Bacteria
+OTU_31	#1b9e77	Bacteria
+OTU_33	#1b9e77	Bacteria
+OTU_25	#1b9e77	Bacteria
+OTU_21	#1b9e77	Bacteria
+OTU_22	#1b9e77	Bacteria
+OTU_26	#1b9e77	Bacteria
+OTU_24	#1b9e77	Bacteria
+OTU_23	#1b9e77	Bacteria
+OTU_27	#1b9e77	Bacteria
+OTU_29	#1b9e77	Bacteria
+OTU_30	#1b9e77	Bacteria
+OTU_32	#1b9e77	Bacteria
+OTU_1227	#1b9e77	Bacteria
+OTU_35	#1b9e77	Bacteria
+OTU_36	#1b9e77	Bacteria
+OTU_43	#1b9e77	Bacteria
+OTU_37	#1b9e77	Bacteria
+OTU_47	#1b9e77	Bacteria
+OTU_1128	#1b9e77	Bacteria
+OTU_38	#1b9e77	Bacteria
+OTU_39	#1b9e77	Bacteria
+OTU_41	#1b9e77	Bacteria
+OTU_42	#1b9e77	Bacteria
+OTU_46	#1b9e77	Bacteria
+OTU_45	#1b9e77	Bacteria
+OTU_69	#1b9e77	Bacteria
+OTU_48	#1b9e77	Bacteria
+OTU_44	#1b9e77	Bacteria
+OTU_40	#1b9e77	Bacteria
+OTU_50	#1b9e77	Bacteria
+OTU_547	#1b9e77	Bacteria
+OTU_49	#1b9e77	Bacteria
+OTU_68	#1b9e77	Bacteria
+OTU_85	#1b9e77	Bacteria
+OTU_51	#1b9e77	Bacteria
+OTU_53	#1b9e77	Bacteria
+OTU_54	#1b9e77	Bacteria
+OTU_57	#1b9e77	Bacteria
+OTU_593	#1b9e77	Bacteria
+OTU_71	#1b9e77	Bacteria
+OTU_56	#1b9e77	Bacteria
+OTU_59	#1b9e77	Bacteria
+OTU_62	#1b9e77	Bacteria
+OTU_67	#1b9e77	Bacteria
+OTU_428	#1b9e77	Bacteria
+OTU_60	#1b9e77	Bacteria
+OTU_61	#1b9e77	Bacteria
+OTU_65	#1b9e77	Bacteria
+OTU_63	#1b9e77	Bacteria
+OTU_77	#1b9e77	Bacteria
+OTU_66	#1b9e77	Bacteria
+OTU_94	#1b9e77	Bacteria
+OTU_72	#1b9e77	Bacteria
+OTU_70	#1b9e77	Bacteria
+OTU_73	#1b9e77	Bacteria
+OTU_74	#1b9e77	Bacteria
+OTU_79	#1b9e77	Bacteria
+OTU_81	#1b9e77	Bacteria
+OTU_427	#1b9e77	Bacteria
+OTU_76	#1b9e77	Bacteria
+OTU_75	#1b9e77	Bacteria
+OTU_80	#1b9e77	Bacteria
+OTU_90	#1b9e77	Bacteria
+OTU_86	#1b9e77	Bacteria
+OTU_84	#1b9e77	Bacteria
+OTU_78	#1b9e77	Bacteria
+OTU_91	#1b9e77	Bacteria
+OTU_87	#1b9e77	Bacteria
+OTU_83	#1b9e77	Bacteria
+OTU_88	#1b9e77	Bacteria
+OTU_89	#1b9e77	Bacteria
+OTU_93	#1b9e77	Bacteria
+OTU_102	#1b9e77	Bacteria
+OTU_92	#1b9e77	Bacteria
+OTU_101	#1b9e77	Bacteria
+OTU_114	#1b9e77	Bacteria
+OTU_100	#1b9e77	Bacteria
+OTU_96	#1b9e77	Bacteria
+OTU_106	#1b9e77	Bacteria
