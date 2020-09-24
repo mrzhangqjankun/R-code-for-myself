@@ -1,0 +1,55 @@
+#计算不同尺度下的样方-物种多度数据矩阵
+#data数据按照CTFS数据格式即可，xsize和ysize分别是样地的边长，gridsize是尺度的边长
+#结果物种的顺序按照总个体数有多到少排列，以方便用户删除个体数少的物种
+scale.data.matrix= function(data,xsize,ysize,gridsize){
+data=data.frame(sp=data$sp,gx=data$gx,gy=data$gy,dbh=data$dbh,branch=data$branch)
+
+data=data[data$branch==0&data$dbh>=1,]
+#data=data[data$dbh>=1,]
+no=gxgy.to.index(data$gx,data$gy,plotdim=c(xsize,ysize),gridsize=gridsize)
+data1=na.omit(cbind(data,no))
+qrat=sort(unique(no))
+n=length(qrat)
+sp=unique(data$sp)
+m=length(sp)
+abu.qrat=as.data.frame(matrix(0,n,m))
+names(abu.qrat)=sp
+row.names(abu.qrat)=qrat
+nobrance.data=data1
+for(i in 1:n)
+{
+data2=nobrance.data[nobrance.data$no==qrat[i],]
+for(j in 1:m)
+{abu.qrat[i,j]=length(data2[data2$sp==sp[j],]$sp)
+}
+}
+return(abu.qrat)
+}
+
+
+
+#将样地划分为不同尺度样方的函数
+gxgy.to.index=function (gx, gy, gridsize = 20, plotdim = c(1000, 500))
+{
+    badgxgy = (gx < 0 | gy < 0 | gx >= plotdim[1] | gy >= plotdim[2] |
+        is.na(gx) | is.na(gy))
+    colno = 1 + floor(gx/gridsize)
+    rowno = 1 + floor(gy/gridsize)
+    if (length(badgxgy[badgxgy > 0]))
+        colno[badgxgy] = rowno[badgxgy] = NA
+    return(rowcol.to.index(rowno, colno, gridsize, plotdim))
+}
+
+rowcol.to.index=function (rowno, colno, gridsize = 20, plotdim = c(1000, 500))
+{
+    badrc = (rowno <= 0 | colno <= 0 | rowno > plotdim[2]/gridsize |
+        colno > plotdim[1]/gridsize)
+    rowno = rowno - 1
+    colno = colno - 1
+    maxrow = floor(plotdim[2]/gridsize)
+    index = colno * maxrow + rowno + 1
+    if (length(badrc[badrc > 0]))
+        index[badrc] = NA
+    return(index)
+}
+result=scale.data.matrix(gts,600,400,20)
