@@ -1,0 +1,50 @@
+Species	S9	S23	S32
+[Clostridium] bolteae	0	0	0.00231
+[Ruminococcus] gnavus	0	0	0.00484
+Atopobium parvulum	0.03481	0	0.00885
+Bacteroides caccae	0	0	0.00352
+Bacteroides caecimuris	0	0	0.00492
+Bacteroides dorei	0	0	0.01057
+Bacteroides fragilis	0	0	0.25582
+Bacteroides ovatus	0	0	0.20739
+Bacteroides thetaiotaomicron	0	0	0.05833
+Bacteroides uniformis	0	0	0.00184
+Bacteroides vulgatus	0	0	0.10428
+Bacteroides xylanisolvens	0	0	0.01881
+Bifidobacterium breve	0	0.07533	0
+Bifidobacterium longum	0	0.07475	0
+Bifidobacterium pseudocatenulatum	0	0.08405	0
+Erysipelotrichaceae bacterium I46	0	0	0.00363
+Escherichia coli	0	0.08596	0.19877
+Faecalibacterium prausnitzii	0	0	0.01627
+Flavonifractor plautii	0	0	0.01923
+Fusobacterium pseudoperiodonticum	0.02631	0	0
+Haemophilus parainfluenzae	0.01904	0.03246	0
+Klebsiella pneumoniae	0	0	0.00194
+Lachnoanaerobaculum umeaense	0.03	0	0
+Lachnospiraceae bacterium	0	0	0.00346
+Lactobacillus amylovorus	0	0.1109	0
+Lactobacillus crispatus	0	0.07181	0
+Lactobacillus mucosae	0	0.09311	0
+Lactobacillus salivarius	0	0.0187	0
+Lautropia mirabilis	0.01815	0	0
+Leptotrichia wadei	0.01473	0	0
+Neisseria subflava	0.02472	0	0
+Porphyromonas gingivalis	0.0116	0	0
+Prevotella intermedia	0.04648	0	0
+Prevotella melaninogenica	0.09345	0	0
+Prevotella oris	0.01979	0	0
+Roseburia hominis	0	0	0.0018
+Rothia mucilaginosa	0.01771	0	0
+Schaalia odontolytica	0.115	0.0084	0
+Selenomonas sp. oral taxon 136	0.01878	0	0
+Selenomonas sp. oral taxon 478	0.0265	0	0
+Streptococcus anginosus	0	0.00777	0
+Streptococcus mitis	0	0.01966	0
+Streptococcus parasanguinis	0.02982	0.02088	0
+Streptococcus salivarius	0.06239	0.05882	0.00222
+Streptococcus sp. HSISM1	0	0.03858	0
+Streptococcus sp. LPB0220	0	0.04771	0
+Veillonella atypica	0.04867	0.00704	0
+Veillonella dispar	0.06689	0.0193	0
+Veillonella parvula	0.03076	0.01521	0.00221
