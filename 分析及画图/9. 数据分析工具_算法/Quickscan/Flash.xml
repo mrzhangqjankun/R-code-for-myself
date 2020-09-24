@@ -1,0 +1,25 @@
+<tool id="Flash" name="Flash">
+	<description>
+		Pair-end joining program for FASTQ 
+	</description>
+	<command interpreter="perl">
+		Flash.pl -f1 $fastq1 -f2 $fastq2 -m $minOverlap -n $maxOverlap -x $mismatchRatio -p $phredOffset -r $avg_length -f $avg_frag_length -s $stdv_frag_length  
+	</command>
+	<inputs>
+		<param format="fastq" name="fastq1" type="data" label="Sequence file 1 (FASTQ)" />
+		<param format="fastq" name="fastq2" type="data" label="Sequence file 2 (FASTQ)" />
+		<param name="minOverlap" type="text" size="5" label="The minimum required overlap length (bp)" value="10"/>
+		<param name="maxOverlap" type="text" size="5" label="The maximum overlap length expected in approximately 90% of read  pairs(bp)" value="70"/>
+		<param name="mismatchRatio" type="text" size="5" label="The maximum allowed ratio of the number of mismatches and the overlap length" value="0.25"/>
+		<param name="phredOffset" type="text" size="5" label="phredOffset" value="33" help=" phredOffset is the smallest ASCII value of the characters used to represent quality values of bases in fastq files. It should be set to either 33, which corresponds to the later Illumina platforms and Sanger platforms, or 64, which corresponds to the earlier Illumina platforms. Default: 33."/>		
+		<param name="avg_length" type="text" size="5" label="Average reads length" value="100"/>
+		<param name="avg_frag_length" type="text" size="5" label="avg_frag_length" value="180"/>
+		<param name="stdv_frag_length" type="text" size="5" label="standard deviation of fragment lengths" value="20" help=" If you do not know standard deviation of the fragment library, you can probably assume that the standard deviation is 10% of the average fragment length."/>
+	</inputs>
+	<outputs>
+		<data format="fastq" name="output1" label="Combined.fastq" from_work_dir="out.extendedFrags.fastq" />
+		<data format="fastq" name="output2" label="notCombined_$fastq1.name" from_work_dir="out.notCombined_1.fastq" />
+		<data format="fastq" name="output3" label="notCombined_$fastq2.name" from_work_dir="out.notCombined_2.fastq" />
+		<data format="txt" name="hist" label="FlashHist.txt" from_work_dir="out.hist" />
+	</outputs>
+</tool>

@@ -1,0 +1,307 @@
+# Ye Deng wrote on Sep-2012
+# Copyright reserved
+# Rewrite based on Yi-Huei's program
+# 1. Put all distributions together
+# 2. Add chi-square test between each two simulation methods
+# 3. Modify the random sampling process to real observation
+
+library(MASS)
+library(pscl)
+library(MCMCpack)
+library(statmod)
+
+rm(list=ls())
+
+individual = 10^6
+OTUs = 10^4
+
+i_distr_gener = 10  # times of distribution generations
+i_samples = 10 # sampling times  
+i_obs = (i_distr_gener * i_samples) ## (i_distr_gener * i_samples) is the total observation times
+samp_end = 0.1 # the max sampling effort reach
+i_samp_scale = 100 # number of sampling points of different sampling efforts (0 to samp_end)
+
+
+distr_method = "exp" #one of ("exp", "gamma", "lognormal", "inv_gamma", "inv_gaussian")  ##exponential, gamma, lognormal, inverse gamma, inverse gaussian
+# assure both community and sampled balls fit same distribution
+
+#---for known N community -----
+#---and for parameters calculation/setting---
+JO_exp1=0
+for(zz in 1:i_samp_scale){
+	effort = zz/i_samp_scale * samp_end
+	a1 = a2 = effort
+	n1 = n2 = ceiling(effort * individual) # number of sampling balls
+		
+	if(distr_method == "exp"){
+		lambda = OTUs/individual
+		J_over_exp1 = a1*a2*(2*lambda+a1+a2)/((lambda+a1)*(lambda+a2)*(a1+a2)) #formula in Table S1
+	}else if(distr_method == "gamma"){
+		alpha_P = 5
+		beta_P = (individual/OTUs)/alpha_P
+		J_over_exp1 = (1-(1+a1*beta_P)^(-alpha_P)-(1+a2*beta_P)^(-alpha_P)+(1+(a1+a2)*beta_P)^(-alpha_P))/(1-(1+(a1+a2)*beta_P)^(-alpha_P))
+	}else if(distr_method == "lognormal"){
+		mu_P=log(50)  #2000
+		sigma_P=1.2
+		SF12<-function(x)
+		{
+			1/(x*sigma_P*sqrt(2*pi))*exp(-(log(x)-(mu_P))^2/(2*sigma_P^2))*(exp(-x*(a1+a2)))
+		}
+		S12_ln = integrate(SF12,lower = 0, upper = Inf)$value
+		SF1<-function(x)
+		{
+			1/(x*sigma_P*sqrt(2*pi))*exp(-(log(x)-(mu_P))^2/(2*sigma_P^2))*(exp(-x*a1))
+		}
+		S1_ln = integrate(SF1,lower = 0, upper = Inf)$value
+		SF2<-function(x)
+		{
+			1/(x*sigma_P*sqrt(2*pi))*exp(-(log(x)-(mu_P))^2/(2*sigma_P^2))*(exp(-x*a2))
+		}
+		S2_ln = integrate(SF2,lower = 0, upper = Inf)$value
+		J_over_exp1 = (1-S1_ln-S2_ln+S12_ln)/(1-S12_ln)
+	}else if(distr_method == "inv_gamma"){
+		alpha_P = 6
+		beta_P = 500
+		SF12<-function(x)
+		{
+			beta_P^(alpha_P-2)/gamma(alpha_P)*x^(-alpha_P-1)*beta_P^2*exp(-beta_P/x)*(exp(-x*(a1+a2)))
+		}
+		S12_ig = integrate(SF12,lower = 0, upper = Inf)$value
+		SF1<-function(x)
+		{
+			beta_P^alpha_P/gamma(alpha_P)*x^(-alpha_P-1)*exp(-beta_P/x)*(exp(-x*a1))
+		}
+		S1_ig = integrate(SF1,lower = 0, upper = Inf)$value
+		SF2<-function(x)
+		{
+			beta_P^alpha_P/gamma(alpha_P)*x^(-alpha_P-1)*exp(-beta_P/x)*(exp(-x*a2))
+		}
+		S2_ig = integrate(SF2,lower = 0, upper = Inf)$value
+		J_over_exp1 = (1-S1_ig-S2_ig+S12_ig)/(1-S12_ig)
+	}else if(distr_method == "inv_gaussian"){
+		ig.mu_P = individual/OTUs
+		ig.lambda_P = ig.mu_P
+		SF12<-function(x)
+		{
+			sqrt(ig.lambda_P/(2*pi*x^3))*exp(-ig.lambda_P*(x-ig.mu_P)^2/(2*(ig.mu_P)^2*x))*(1-exp(-x*a1))*(1-exp(-x*a2))
+		}
+		S12_ig = integrate(SF12,lower = 0, upper = Inf)$value
+		SF1<-function(x)
+		{
+			sqrt(ig.lambda_P/(2*pi*x^3))*exp(-ig.lambda_P*(x-ig.mu_P)^2/(2*(ig.mu_P)^2*x))*(1-exp(-x*a1))
+		}
+		S1_ig = integrate(SF1,lower = 0, upper = Inf)$value
+		SF2<-function(x)
+		{
+			sqrt(ig.lambda_P/(2*pi*x^3))*exp(-ig.lambda_P*(x-ig.mu_P)^2/(2*(ig.mu_P)^2*x))*(1-exp(-x*a2))
+		}
+		S2_ig = integrate(SF2,lower = 0, upper = Inf)$value
+		J_over_exp1 = S12_ig/(S1_ig+S2_ig-S12_ig)
+	}
+	JO_exp1 = c(JO_exp1, J_over_exp1)
+}
+#------
+
+k1 = 1
+samp_effort = 0
+JO_obs = c()
+JO_exp2 = c()
+BC_obs = c()
+for(xx in 1:i_distr_gener){
+	# generate community ##  identical single jar (community) instead of Yihuei's program generating two jars
+	if(distr_method == "exp"){
+		RX1 = ceiling(rexp(OTUs,lambda))
+	}else if(distr_method == "gamma"){
+		RX1 = ceiling(rgamma(OTUs, shape=alpha_P, scale = beta_P))
+	}else if(distr_method == "lognormal"){
+		RX1 = ceiling(rlnorm(OTUs, meanlog=mu_P, sdlog=sigma_P))
+	}else if(distr_method == "inv_gamma"){
+		RX1 = ceiling(rigamma(OTUs, alpha=alpha_P,beta=beta_P))
+	}else if(distr_method == "inv_gaussian"){
+		RX1 = ceiling(rinvgauss(OTUs, mu=ig.mu_P,lambda=ig.lambda_P))
+	}
+	N1 = sum(RX1) #community size of real generated community
+	P1 = RX1/N1 #probility of each OTU
+	
+	Jover_obs = c()
+	Jover_exp2 = c()
+	BCover_obs = c()
+	for(zz in 1:i_samp_scale){
+		effort = zz/i_samp_scale * samp_end
+		a1 = a2 = effort
+		n1 = n2 = ceiling(effort * individual) # number of sampling balls
+		Jov_obs = c()
+		Jov_exp2 = c()
+		BCov_obs = c()
+		for(yy in 1:i_samples){
+			#---for observed overlaps-----
+			sample1 = rmultinom(1, size = n1, prob=P1) #randomly pick up balls
+			sample2 = rmultinom(1, size = n2, prob=P1)
+			# Jaccard similarity
+			core = which((sample1*sample2)>0)
+			pan = which((sample1+sample2)>0)
+			if(length(pan)>0){
+				Jaccard_over_ob = length(core)/length(pan)
+			}else{
+				Jaccard_over_ob = 0
+			}
+			Jov_obs = c(Jov_obs, Jaccard_over_ob)
+			# Bray similarity
+			sampledata = cbind(sample1,sample2)
+			min_row = apply(sampledata, 1, min)
+			BC_over = 2 * sum(min_row)/(sum(sample1)+sum(sample2))
+			BCov_obs = c(BCov_obs, BC_over)
+			sampledata = rowSums(sampledata)
+			
+			#---for N unknown formula---
+			if(distr_method == "exp"){
+				expo1 = mean(sampledata)
+				lambda2 = 1/expo1
+				ex_hyper12 <- function(x)
+				{
+					lambda2 * exp(-lambda2*x)*(1-exp(-x*a1/(a1+a2)))*(1-exp(-x*a2/(a1+a2)))
+				}
+				s12_exp = integrate(ex_hyper12,lower = 0, upper = Inf)$value
+				ex_hyper1 <- function(x)
+				{
+					lambda2 * exp(-lambda2*x)*(1-exp(-x*a1/(a1+a2)))
+				}
+				s1_exp = integrate(ex_hyper1,lower = 0, upper = Inf)$value
+				ex_hyper2 <- function(x)
+				{
+					lambda2 * exp(-lambda2*x)*(1-exp(-x*a2/(a1+a2)))
+				}
+				s2_exp = integrate(ex_hyper2,lower = 0, upper = Inf)$value
+				J_over_exp2 = s12_exp/(s1_exp+s2_exp-s12_exp)
+			}else if(distr_method == "gamma"){
+				med.gam1=mean(sampledata) ## sample mean
+				var.gam1=var(sampledata) ## sample variance
+				beta1=var.gam1/med.gam1 ## beta estimate (scale)
+				alpha1=((med.gam1)^2)/var.gam1 ## alfa estimate
+				ga_hyper12<-function(x)
+				{
+					1/(gamma(alpha1)*(beta1)^(alpha1))*x^(alpha1-1)*exp(-x/(beta1))*(1-exp(-(a1/(a1+a2))*x))*(1-exp(-(a2/(a1+a2))*x))
+				}
+				s12_ga = integrate(ga_hyper12,lower = 0, upper = Inf)$value
+				ga_hyper1<-function(x)
+				{
+					1/(gamma(alpha1)*(beta1)^(alpha1))*x^(alpha1-1)*exp(-x/(beta1))*(1-exp(-x*a1/(a1+a2)))
+				}
+				s1_ga=integrate(ga_hyper1,lower = 0, upper = Inf)$value
+				ga_hyper2<-function(x)
+				{
+					1/(gamma(alpha1)*(beta1)^(alpha1))*x^(alpha1-1)*exp(-x/(beta1))*(1-exp(-x*a2/(a1+a2)))
+				}
+				s2_ga=integrate(ga_hyper2,lower = 0, upper =Inf)$value
+				J_over_exp2 = s12_ga/(s1_ga+s2_ga-s12_ga)
+			}else if(distr_method == "lognormal"){
+				m = mean(sampledata)
+				sig = var(sampledata)
+				lsigma.est1 = sqrt(log((sig/m^2)+1))
+				lmu.est1 = log(m)-(lsigma.est1)^2/2
+				LN_hyper12<-function(x)
+					{
+						1/(x*lsigma.est1*sqrt(2*pi))*exp(-(log(x)-(lmu.est1))^2/(2*lsigma.est1^2))*(1-exp(-x*a1/(a1+a2)))*(1-exp(-x*a2/(a1+a2)))
+					}
+				s12_LN = integrate(LN_hyper12,lower = 0, upper = Inf)$value
+				LN_hyper1<-function(x)
+					{
+						1/(x*lsigma.est1*sqrt(2*pi))*exp(-(log(x)-(lmu.est1))^2/(2*lsigma.est1^2))*(1-exp(-x*a1/(a1+a2)))
+					}
+				s1_LN = integrate(LN_hyper1,lower = 0, upper = Inf)$value
+				LN_hyper2<-function(x)
+					{
+						1/(x*lsigma.est1*sqrt(2*pi))*exp(-(log(x)-(lmu.est1))^2/(2*lsigma.est1^2))*(1-exp(-x*a2/(a1+a2)))
+					}
+				s2_LN = integrate(LN_hyper2,lower = 0, upper = Inf)$value
+				J_over_exp2 = s12_LN/(s1_LN+s2_LN-s12_LN)
+			}else if(distr_method == "inv_gamma"){
+				igm.alpha = mean(sampledata)^2/var(sampledata)+2
+				igm.beta = mean(sampledata)^3/var(sampledata)+mean(sampledata)
+				IGM.hyper1<-function(x)
+				{
+					igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-(a1/(a1+a2))*x))*(1-exp(-x*a2/(a1+a2)))
+
+				}
+				s12_IGM = integrate(IGM.hyper1,lower = 0, upper = Inf)$value
+				IGM.hyper1<-function(x)
+				{
+					igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-x*a1/(a1+a2)))
+				}
+				s1_IGM = integrate(IGM.hyper1,lower = 0, upper = Inf)$value
+				IGM.hyper2<-function(x)
+				{
+					igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-x*a2/(a1+a2)))
+				}
+				s2_IGM = integrate(IGM.hyper2,lower = 0, upper = Inf)$value
+				J_over_exp2 = s12_IGM/(s1_IGM+s2_IGM-s12_IGM)
+			}else if(distr_method == "inv_gaussian"){
+				ig.mu = mean(sampledata)
+				ig.lambda = ig.mu^3/var(sampledata)
+				IG.hyper12<-function(x)
+				{
+					sqrt(ig.lambda/(2*pi*x^3))*exp(-ig.lambda*(x-ig.mu)^2/(2*ig.mu^2*x))*(1-exp(-(a1/(a1+a2))*x))*(1-exp(-x*a2/(a1+a2)))
+
+				}
+				s12_IG = integrate(IG.hyper12,lower = 0, upper = Inf)$value
+				IG.hyper1<-function(x)
+				{
+					sqrt(ig.lambda/(2*pi*x^3))*exp(-ig.lambda*(x-ig.mu)^2/(2*ig.mu^2*x))*(1-exp(-x*a1/(a1+a2)))
+				}
+				s1_IG = integrate(IG.hyper1,lower = 0, upper = Inf)$value
+				IG.hyper2<-function(x)
+				{
+					sqrt(ig.lambda/(2*pi*x^3))*exp(-ig.lambda*(x-ig.mu)^2/(2*ig.mu^2*x))*(1-exp(-x*a2/(a1+a2)))
+				}
+				s2_IG = integrate(IG.hyper2,lower = 0, upper = Inf)$value
+				J_over_exp2 = s12_IG/(s1_IG+s2_IG-s12_IG)
+			}
+			Jov_exp2 = c(Jov_exp2, J_over_exp2)
+		}
+		Jover_obs = rbind(Jover_obs, Jov_obs)
+		Jover_exp2 = rbind(Jover_exp2, Jov_exp2)
+		BCover_obs = rbind(BCover_obs, BCov_obs)
+	}
+	JO_obs = cbind(JO_obs, Jover_obs)
+	JO_exp2 = cbind(JO_exp2, Jover_exp2)
+	BC_obs = cbind(BC_obs, BCover_obs)
+}
+
+# for plot Jaccard curve
+samp_effort = seq(0,samp_end,by=samp_end/i_samp_scale)
+JO_exp1_plot = JO_exp1
+JO_exp2_plot = c(0,rowMeans(JO_exp2))
+JO_obv_plot = c(0, rowMeans(JO_obs))
+
+par(mar=c(5.1, 5, 4, 1))
+plot(samp_effort,JO_obv_plot,type="p", ylim=c(0,1),xlim=c(0,samp_end),xlab="Sampling effort (a1=a2)", ylab="Jaccard overlap", col="black",cex.lab=1.8, cex.axis=1.6)
+lines(samp_effort,JO_exp1_plot,col="blue", lwd=2)
+lines(samp_effort,JO_exp2_plot,col="red", lwd=2.5)
+
+#chi square tests for homogeneity
+JO_obs_mean = rowMeans(JO_obs)
+JO_exp1_mean = JO_exp1[-1]
+JO_exp2_mean = rowMeans(JO_exp2)
+chi1 = sum((JO_obs_mean - JO_exp1_mean)^2/JO_exp1_mean)
+p1 = pchisq(chi1, df=i_samp_scale, lower=FALSE)
+chi2 = sum((JO_obs_mean - JO_exp2_mean)^2/JO_exp2_mean)
+p2 = pchisq(chi2, df=i_samp_scale, lower=FALSE)
+chi3 = sum((JO_exp1_mean - JO_exp2_mean)^2/JO_exp2_mean)
+p3 = pchisq(chi3, df=i_samp_scale, lower=FALSE)
+chi1
+p1
+chi2
+p2
+chi3
+p3
+
+# Stop here and run following scripts separately 
+
+# for plot BC curve
+BC_obs_mean = rowMeans(BC_obs)
+BC_obs_std = apply(BC_obs, 1, sd)
+BC_obs_plot = c(0, BC_obs_mean)
+BC_up_line = c(0, BC_obs_mean+2*BC_obs_std)
+BC_down_line = c(0, BC_obs_mean-2*BC_obs_std)
+plot(samp_effort,BC_obs_plot,type="p", ylim=c(0,1),xlim=c(0,samp_end),xlab="Sampling effort (a1=a2)", ylab="Bray-Cutis overlap", col="black",cex.lab=1.8, cex.axis=1.6, cex=0.5)
+segments(samp_effort, BC_up_line, samp_effort, BC_down_line, col="red")  #SD are too small to be plot

@@ -1,0 +1,22 @@
+<tool id="Btrim64" name="Btrim">
+	<description>
+		Trimming tool for FASTQ 
+	</description>
+	<command interpreter="perl">
+		Btrim.pl -t $fastq -o $output -w $window_size -a $avg_qual -s $format -l $min_length -d $length_output
+	</command>
+	<inputs>
+		<param format="fastq" name="fastq" type="data" label="Sequence file(FASTQ)" />
+		<param name="format" type="select" label="Format">
+			<option value="sanger" selected="true">Sanger</option>
+			<option value="illumina">Illumina</option>
+		</param>		
+		<param name="avg_qual" type="text" size="5" label="Average Quality Score" value="20"/>
+		<param name="min_length" type="text" size="5" label="Minimum Length" value="100"/>
+		<param name="window_size" type="text" size="5" label="Window Size" value="5"/>
+	</inputs>
+	<outputs>
+		<data format="fastq" name="output" label="Trimmed_${fastq.name}" />
+		<data format="txt" name="length_output" label="length_distribution.txt" />
+	</outputs>
+</tool>

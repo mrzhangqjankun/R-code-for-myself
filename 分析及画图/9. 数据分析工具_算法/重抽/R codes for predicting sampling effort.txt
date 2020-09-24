@@ -1,0 +1,176 @@
+# Ye Deng wrote on Sep-2012
+# Copyright reserved
+# 
+# For acheived overlap percentage, to calculate how much sequences have to be sequenced
+# Based on real samples, put estimated parameters and distribution into the function
+
+rm(list=ls())
+
+JO_exp_predict<-function(total, samp=2, lambda1=0.01, frq=100){  #for Jaccard overlap of exponential distribution
+	if(!total){
+		stop("put an integer as sum of multiple sampling")
+	}
+	overlap = 0
+	samplesize = 0
+	JO = 0
+	i = 1
+	while(overlap<0.9){ 
+		a = i * frq # every frq [100 (default)], take a sample
+		samplesize[i] = a
+		if(samp==2){
+			UU1<-function(x){a<-a;lambda1*exp(-lambda1*x)*(1-exp(-(a/(total))*x))}
+			s1 = integrate(UU1,lower = 0, upper = Inf)$value
+			UU2<-function(x){a<-a;lambda1*exp(-lambda1*x)*(1-exp(-(a/(total))*x))*(1-exp(-(a/(total))*x))}
+			s2 = integrate(UU2,lower = 0, upper = Inf)$value
+			overlap = s2/(2*s1-s2)
+			JO[i] = overlap
+		}else if(samp==3){
+			UU1<-function(x){a<-a;lambda1*exp(-lambda1*x)*(1-exp(-(a/(total))*x))}
+			s1 = integrate(UU1,lower = 0, upper = Inf)$value
+			UU2<-function(x){a<-a;lambda1*exp(-lambda1*x)*((1-exp(-(a/(total))*x))^3)}
+			s2 = integrate(UU2,lower = 0, upper = Inf)$value
+			UU3<-function(x){a<-a;lambda1*exp(-lambda1*x)*((1-exp(-(a/(total))*x))^2)}
+			s3 = integrate(UU3,lower = 0, upper = Inf)$value
+			overlap = s2/(3*s1-3*s3+s2)
+			JO[i] = overlap
+		}else{
+			stop("invalid sampling times. We currently only support two or three sampling times.")
+		}
+		i = i+1
+	}
+	i50 = which(JO>0.50)[1]; s50 = samplesize[i50]
+	i80 = which(JO>0.80)[1]; s80 = samplesize[i80]
+	i90 = which(JO>0.90)[1]; s90 = samplesize[i90]
+	report = cbind(JO, samplesize)
+	colnames(report) = c("Jaccard overlap","sampling_size")
+	#return(report)
+	report2 = list(Sampling50 = s50, Sampling80 = s80, Sampling90 = s90)
+	return(report2)
+}
+
+JO_IGM_predict<-function(total, samp=2, igm.alpha=6, igm.beta=500, frq=100){  #for Jaccard overlap of inverse gamma distribution
+	if(!total){
+		stop("put an integer as sum of multiple sampling")
+	}
+	overlap = 0
+	samplesize = 0
+	JO = 0
+	i = 1
+	while(overlap<0.9){ 
+		a = i * frq # every frq [100 (default)], take a sample
+		samplesize[i] = a
+		if(samp==2){
+			IGM.hyper12<-function(x)
+			{
+				igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-(a/total)*x))*(1-exp(-x*a/total))
+
+			}
+			s12_IGM = integrate(IGM.hyper12,lower = 0, upper = Inf)$value
+			IGM.hyper1<-function(x)
+			{
+				igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-x*a/total))
+			}
+			s1_IGM = integrate(IGM.hyper1,lower = 0, upper = Inf)$value
+			overlap = s12_IGM/(2*s1_IGM-s12_IGM)
+			JO[i] = overlap
+		}else if(samp==3){
+			IGM.hyper12<-function(x)
+			{
+				igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-(a/total)*x))*(1-exp(-x*a/total))
+
+			}
+			s12_IGM = integrate(IGM.hyper12,lower = 0, upper = Inf)$value
+			IGM.hyper1<-function(x)
+			{
+				igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*(1-exp(-x*a/total))
+			}
+			s1_IGM = integrate(IGM.hyper1,lower = 0, upper = Inf)$value
+			IGM.hyper123<-function(x)
+			{
+				igm.beta^igm.alpha/gamma(igm.alpha)*x^(-igm.alpha-1)*exp(-igm.beta/x)*((1-exp(-x*a/total))^3)
+			}
+			s123_IGM = integrate(IGM.hyper123,lower = 0, upper = Inf)$value
+			overlap = s123_IGM/(3*s1_IGM-3*s12_IGM+s123_IGM) 
+			JO[i] = overlap
+		}else{
+			stop("invalid sampling times. We currently only support two or three sampling times.")
+		}
+		i = i+1
+	}
+	report = cbind(JO, samplesize)
+	colnames(report) = c("Jaccard_overlap","sampling_size")
+	i50 = which(JO>0.50)[1]; s50 = samplesize[i50]
+	i80 = which(JO>0.80)[1]; s80 = samplesize[i80]
+	i90 = which(JO>0.90)[1]; s90 = samplesize[i90]
+	report2 = list(Sampling50 = s50, Sampling80 = s80, Sampling90 = s90)
+	return(report2)
+}
+
+# for 1UU-FR
+JO_IGM_predict(2270, samp=2, igm.alpha=2.0861, igm.beta=0.2694, frq=100)
+
+# for 2UC-FR
+JO_exp_predict(2192, samp=2, lambda1=3.6149, frq=100)
+
+# for 3UU-FR
+JO_exp_predict(3154, samp=2, lambda1=2.9014, frq=100)
+
+# for 3WU-FR
+JO_IGM_predict(3342, samp=2, igm.alpha=2.0974, igm.beta=0.4275, frq=100)
+
+# for 4UC-FR
+JO_IGM_predict(2578, samp=2, igm.alpha=2.12, igm.beta=0.3644, frq=100)
+
+# for 4UU-FR
+JO_exp_predict(3061, samp=2, lambda1=2.9895, frq=100)
+
+# for 4WC-FR
+JO_exp_predict(2817, samp=2, lambda1=2.9034, frq=100)
+
+# for 5UC-FR
+JO_IGM_predict(2881, samp=2, igm.alpha=2.1164, igm.beta=0.4059, frq=100)
+
+# for 5UU-FR
+JO_IGM_predict(2971, samp=2, igm.alpha=2.0877, igm.beta=0.3532, frq=100)
+
+# for 5WU-FR
+JO_IGM_predict(3877, samp=2, igm.alpha=2.1083, igm.beta=0.5008, frq=100)
+
+# for 6UC-FR
+JO_IGM_predict(2613, samp=2, igm.alpha=2.1067, igm.beta=0.3649, frq=100)
+
+# for 6WC-FR
+JO_IGM_predict(1845, samp=2, igm.alpha=2.0737, igm.beta=0.2422, frq=100)
+
+#========
+# 3 samples
+# for 1UC-FR
+JO_IGM_predict(5343, samp=3, igm.alpha=2.1121, igm.beta=0.7498, frq=100)
+
+# for 1WC-FR
+JO_IGM_predict(5729, samp=3, igm.alpha=2.1251, igm.beta=0.788, frq=100)
+
+# for 2UU-FR
+JO_IGM_predict(9863, samp=3, igm.alpha=2.1246, igm.beta=1.2121, frq=100)
+
+# for 2WU-FR
+JO_IGM_predict(3801, samp=3, igm.alpha=2.1251, igm.beta=0.4984, frq=100)
+
+# for 3UC-FR
+JO_IGM_predict(8300, samp=3, igm.alpha=2.0731, igm.beta=1.1241, frq=100)
+
+# for 3WC-FR
+JO_IGM_predict(5280, samp=3, igm.alpha=2.1154, igm.beta=0.72, frq=100)
+
+# for 4WU-FR
+JO_IGM_predict(5155, samp=3, igm.alpha=2.1532, igm.beta=0.6929, frq=100)
+
+# for 5WC-FR
+JO_IGM_predict(5743, samp=3, igm.alpha=2.1679, igm.beta=0.8204, frq=100)
+
+# for 6UU-FR
+JO_IGM_predict(5188, samp=3, igm.alpha=2.1715, igm.beta=0.664, frq=100)
+
+# for 6WU-FR
+JO_IGM_predict(6138, samp=3, igm.alpha=2.1751, igm.beta=0.8406, frq=100)
+
