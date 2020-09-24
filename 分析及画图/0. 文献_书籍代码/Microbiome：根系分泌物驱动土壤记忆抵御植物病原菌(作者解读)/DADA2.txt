@@ -1,0 +1,395 @@
+#######################################################################DADA2 with single end seqs, paired end loses too many reads
+qiime tools import \
+  --type 'SampleData[SequencesWithQuality]' \
+  --input-path pathogen/single_end_fw \
+  --source-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path china_demux-single-end.qza
+#  
+qiime demux summarize \
+  --i-data china_demux-single-end.qza \
+  --o-visualization china_demux-single-end
+#  
+###use only fw reads, truncate at 140 to get rid of low quality bases
+#
+qiime dada2 denoise-single \
+  --i-demultiplexed-seqs china_demux-single-end.qza \
+  --p-trunc-len 140 \
+  --p-trim-left 17 \
+  --p-max-ee 2 \
+  --p-n-threads 0 \
+  --o-table single_feature_table_maxee2 \
+  --o-representative-sequences single_rep-seqs_maxee2
+#  
+#tabulate feature sequences
+qiime feature-table tabulate-seqs \
+  --i-data single_rep-seqs_maxee2.qza \
+  --o-visualization single_rep-seqs_maxee2.qzv
+#  
+#many features observed in only 1 sample at high count numbers --> possible chimeras missed due to use of only fw reads? 
+#
+#filter out features that are only present in 1 sample
+qiime feature-table filter-features \
+  --i-table single_feature_table_maxee2.qza \
+  --p-min-samples 2 \
+  --o-filtered-table single_feature_table_min2samples
+#
+#filter sequences from rep-seqs based on single_feature_table_min2samples.qza
+qiime feature-table filter-seqs \
+  --i-data single_rep-seqs_maxee2.qza \
+  --i-table single_feature_table_min2samples.qza \
+  --o-filtered-data rep-seqs_min2samples
+#
+###build towards assigned taxonomies, use silva database, silva_128_release (2017)
+#make .qza of the silva database
+qiime tools import \
+  --input-path 99_otus_16S.fasta \
+  --output-path 99_otus_16S.qza \
+  --type 'FeatureData[Sequence]'
+# 
+qiime tools import \
+  --type FeatureData[Taxonomy] \
+  --source-format HeaderlessTSVTaxonomyFormat \
+  --input-path consensus_taxonomy_7_levels.txt \
+  --output-path ref-taxonomy.qza
+# 
+qiime feature-classifier extract-reads \
+  --i-sequences 99_otus_16S.qza \
+  --p-f-primer CCTACGGGNGGCWGCAG \
+  --p-r-primer GACTACHVGGGTATCTAATCC \
+  --p-trunc-len 140 \
+  --o-reads 99_otus_16S_V3V4_trunc140    ###inspect output for appropriate extraction
+#
+qiime feature-classifier classify-consensus-vsearch \
+  --i-query rep-seqs_min2samples.qza \
+  --i-reference-reads 99_otus_16S_V3V4_trunc140.qza \
+  --i-reference-taxonomy ref-taxonomy.qza \
+  --p-threads 0 \
+  --o-classification rep-seqs_min2samples_assigned_taxonomy
+################
+########prepare files for import into R:phyloseq. note: remove spaces from taxonomy file
+################
+#####export for use in R:phyloseq	Final_table; Final_table_rep-seqs; Final_table_rep-seqs_assigned_taxonomy
+###Done manually, then:
+#convert .biom to tsv
+biom convert -i single_feature_table_min2samples.biom -o single_feature_table_min2samples.txt --to-tsv
+#in excel merge taxonomies with feature table
+#convert final table back to .biom
+biom convert -i single_feature_table_min2samples.txt -o single_feature_table_min2samples_with_tax.biom --to-hdf5 --table-type="OTU table" --process-obs-metadata taxonomy
+################in R
+#setwd("C:/Users/3378012/Shared_Folder/China/R")
+library("DESeq2")
+library("phyloseq")
+library("ggplot2")
+library("dplyr")
+China_phyloseq <- import_biom(BIOMfilename = "single_feature_table_min2samples_with_tax.biom", treefilename = "rep-seqs_min2samples_rooted_phylogeny.nwk", refseqfilename = "rep-seqs_min2samples.fasta")
+metadata <- import_qiime_sample_data("china_metadata.txt")
+China_phyloseq_complete <- merge_phyloseq(China_phyloseq, metadata)
+#change col names in tax_table
+#head(tax_table(China_phyloseq_complete))
+colnames(tax_table(China_phyloseq_complete)) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+
+
+###Taxonomy cumulative bar plot, fig 2A
+#Taxonomy barblots all replicates shown, got this code somewhere online..
+Taxonomies <- China_phyloseq_complete %>%
+  tax_glom(taxrank = "Phylum") %>%                     # agglomerate at Class level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  #filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
+  arrange(Phylum)
+#Set colors for classes
+Phylum_colors <- c(
+  "#89C5DA", "#74D944", "#DA5724", "#CE50CA", "#D3D93E", "#C0717C", "#CBD588", "#5F7FC7", 
+  "#673770", "#3F4921", "#38333E", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD", 
+  "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D", 
+  "#8A7C64", "#00FF66", "#339933", "#993366"
+)
+#get rid of rank numbers and other ugly things in taxonomic ranks
+#Final_table_replicates_class$Kingdom <- gsub("D_0__","", Final_table_replicates_class$Kingdom)
+Taxonomies$Phylum <- gsub("D_1__","", Taxonomies$Phylum)
+Taxonomies$Phylum <- gsub("_"," ", Taxonomies$Phylum)
+#make abundances per group sum to 1 then make percentages
+Taxonomies$Abundance = Taxonomies$Abundance / 9
+Taxonomies$Abundance = Taxonomies$Abundance * 100
+#########Taxonomy barplots summarized per Group
+tiff("china_barplot_3.tiff", width = 9, height = 6, units = 'in', res = 300)
+china_barplots <- ggplot(Taxonomies, aes(x = Group, y = Abundance, fill = Phylum)) + 
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = Phylum_colors) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.text=element_text(size=6)) +
+  scale_y_continuous(name = "Abundance (%)")
+print(china_barplots)
+dev.off()
+
+
+#################################
+#PCoA bray-curtis Fig. 2B
+theme_set(theme_bw())
+China_phyloseq_complete_depth13000 <- rarefy_even_depth(China_phyloseq_complete, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_phyloseq_complete_depth13000.ord <- ordinate(China_phyloseq_complete_depth13000, "PCoA", "bray")
+Bray_depth13000_PCoA_1 = plot_ordination(China_phyloseq_complete_depth13000, China_phyloseq_complete_depth13000.ord, type="samples", label="Sample")
+print(Bray_depth13000_PCoA_1)
+tiff("Bray_depth13000_PCoA_2.tiff", width = 6, height = 4, units = 'in', res = 300)
+Bray_depth13000_PCoA_2 <- Bray_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - Bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(Bray_depth13000_PCoA_2)
+dev.off()
+
+
+#################################, use custom gm_mean, as default analysis cannot handle tables with many zeros
+#DESeq2 bulksoil, Fig. 2C
+China_bulksoil = subset_samples(China_phyloseq_complete, Type == "Bulksoil")
+DEseq2_China_bulksoil = phyloseq_to_deseq2(China_bulksoil, ~Treatment)
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+geoMeans = apply(counts(DEseq2_China_bulksoil), 1, gm_mean)
+DEseq2_China_bulksoil = estimateSizeFactors(DEseq2_China_bulksoil, geoMeans = geoMeans)
+DEseq2_China_bulksoil = DESeq(DEseq2_China_bulksoil, fitType="local")
+dispersion_plot_China_bulksoil <- plotDispEsts(DEseq2_China_bulksoil)
+resultsNames(DEseq2_China_bulksoil)
+resLFC_Bulksoil <- lfcShrink(DEseq2_China_bulksoil, coef="Treatment_Pst_vs_Control")
+alpha = 0.05
+sigtab_Bulksoil = resLFC_Bulksoil[which(resLFC_Bulksoil$padj < alpha), ]
+sigtab_Bulksoil = cbind(as(sigtab_Bulksoil, "data.frame"), as(tax_table(China_bulksoil)[rownames(sigtab_Bulksoil), ], "matrix"))
+head(sigtab_Bulksoil)
+dim(sigtab_Bulksoil)
+write.csv(sigtab_Bulksoil, file = "sigtab_China_Bulksoil.csv")
+#get rid of rank numbers in taxonomic ranks
+sigtab_Bulksoil$Kingdom <- gsub("D_0__","", sigtab_Bulksoil$Kingdom)
+sigtab_Bulksoil$Phylum <- gsub("D_1__","", sigtab_Bulksoil$Phylum)
+sigtab_Bulksoil$Class <- gsub("D_2__","", sigtab_Bulksoil$Class)
+sigtab_Bulksoil$Order <- gsub("D_3__","", sigtab_Bulksoil$Order)
+sigtab_Bulksoil$Family <- gsub("D_4__","", sigtab_Bulksoil$Family)
+sigtab_Bulksoil$Genus <- gsub("D_5__","", sigtab_Bulksoil$Genus)
+sigtab_Bulksoil$Species <- gsub("D_6__","", sigtab_Bulksoil$Species)
+#add taxonomies for pretty plotting
+sigtab_Bulksoil$Taxonomy <- c("Tumebacillus sp.", "DA101 soil group sp.", "Roseiflexus sp. #1")
+#go for plot
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+    scale_fill_brewer(palette = palname, ...)
+}
+mylabels <- c(expression(paste("Uncultured ", italic("DA101 soil group "), "sp.")), 
+                expression(paste(italic("Roseiflexus "), "sp. #1")), 
+                expression(paste("Uncultured ", italic("Tumebacillus "), "sp.")))
+tiff("China_bulksoil_DESeq2.tiff", width = 6, height = 3, units = 'in', res = 300)
+China_bulksoil_DESeq2 <- ggplot(sigtab_Bulksoil, aes(x=log2FoldChange, y=Taxonomy)) +
+  geom_point(aes(fill="Red"), size=3, colour="black", pch=21) + 
+  geom_vline(xintercept=0, linetype="dashed", color = "grey", size=1) +
+  theme(legend.position="none") +
+  scale_y_discrete(name="", labels = mylabels)
+  #ggtitle("Differential abundance Pst vs. control - Bulk soil") +
+  #theme(plot.title = element_text(hjust = 0.5))
+print(China_bulksoil_DESeq2)
+dev.off()
+
+
+###############################
+#DESeq2 Rhizosphere, Fig. 2D
+China_Rhizosphere = subset_samples(China_phyloseq_complete, Type == "Rhizosphere")
+DEseq2_China_Rhizosphere = phyloseq_to_deseq2(China_Rhizosphere, ~Treatment)
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+geoMeans = apply(counts(DEseq2_China_Rhizosphere), 1, gm_mean)
+DEseq2_China_Rhizosphere = estimateSizeFactors(DEseq2_China_Rhizosphere, geoMeans = geoMeans)
+DEseq2_China_Rhizosphere = DESeq(DEseq2_China_Rhizosphere, fitType="local")
+dispersion_plot_China_Rhizosphere <- plotDispEsts(DEseq2_China_Rhizosphere)
+resultsNames(DEseq2_China_Rhizosphere)
+resLFC_Rhizosphere <- lfcShrink(DEseq2_China_Rhizosphere, coef="Treatment_Pst_vs_Control")
+alpha = 0.05
+sigtab_Rhizosphere = resLFC_Rhizosphere[which(resLFC_Rhizosphere$padj < alpha), ]
+sigtab_Rhizosphere = cbind(as(sigtab_Rhizosphere, "data.frame"), as(tax_table(China_Rhizosphere)[rownames(sigtab_Rhizosphere), ], "matrix"))
+head(sigtab_Rhizosphere)
+dim(sigtab_Rhizosphere)
+#write.csv(sigtab_Rhizosphere, file = "sigtab_China_Rhizosphere.csv")
+#get rid of rank numbers in taxonomic ranks
+sigtab_Rhizosphere$Kingdom <- gsub("D_0__","", sigtab_Rhizosphere$Kingdom)
+sigtab_Rhizosphere$Phylum <- gsub("D_1__","", sigtab_Rhizosphere$Phylum)
+sigtab_Rhizosphere$Class <- gsub("D_2__","", sigtab_Rhizosphere$Class)
+sigtab_Rhizosphere$Order <- gsub("D_3__","", sigtab_Rhizosphere$Order)
+sigtab_Rhizosphere$Family <- gsub("D_4__","", sigtab_Rhizosphere$Family)
+sigtab_Rhizosphere$Genus <- gsub("D_5__","", sigtab_Rhizosphere$Genus)
+sigtab_Rhizosphere$Species <- gsub("D_6__","", sigtab_Rhizosphere$Species)
+sigtab_Rhizosphere$Taxonomy <- c("Family I sp.", "Uncultured Anaerolineaceae sp.", "Uncultured Ardenticatenales sp.", "Roseiflexus spp.  #1 and #2", "Roseiflexus spp.  #1 and #2")
+#go for plot
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+    scale_fill_brewer(palette = palname, ...)
+}
+mylabels2 <- c(expression(paste(italic("Family I "), "sp.")), 
+                expression(paste(italic("Roseiflexus "), "spp. #2 and #3")), 
+				expression(paste("Uncultured ", italic("Anaerolineaceae "), "sp.")),
+				expression(paste("Uncultured ", italic("Ardenticatenales "), "sp.")))
+tiff("China_Rhizosphere_DESeq2.tiff", width = 6, height = 3, units = 'in', res = 300)
+China_Rhizosphere_DESeq2 <- ggplot(sigtab_Rhizosphere, aes(x=log2FoldChange, y=Taxonomy)) +
+  geom_point(aes(fill="Red"), size=3, colour="black", pch=21) + 
+  geom_vline(xintercept=0, linetype="dashed", color = "grey", size=1) +
+  theme(legend.position="none") +
+  scale_y_discrete(name="", labels = mylabels2)
+  #ggtitle("Differential abundance Pst vs. control - Rhizosphere") +
+  #theme(plot.title = element_text(hjust = 0.5))
+print(China_Rhizosphere_DESeq2)
+dev.off()
+####for revision, supplementary figures and statistics, show which ASVs cause separation of BP and BC in absence of fictibacillus and sphingomonas, also redo all other pcoa's, to match format in rest of manuscript
+
+####Fig S3, Statistical outputs were manually added to the figures
+#fig S3A, bulksoil pcoa
+China_bs = subset_samples(China_phyloseq_complete, Type == "Bulksoil")
+China_bs_depth13000 <- rarefy_even_depth(China_bs, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_phyloseq_complete_depth13000.ord <- ordinate(China_bs_depth13000, "PCoA", "bray") #, binary = TRUE)
+bray_depth13000_PCoA_1 = plot_ordination(China_phyloseq_complete_depth13000, China_phyloseq_complete_depth13000.ord, type="samples") #, label="Sample")
+print(bray_depth13000_PCoA_1)
+tiff("bray_depth13000_PCoA_2_bulksoil.tiff", width = 6, height = 4, units = 'in', res = 300)
+bray_depth13000_PCoA_2_bulksoil <- bray_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(bray_depth13000_PCoA_2_bulksoil)
+dev.off()
+#test with permanova (adonis)
+df = data.frame(sample_data(China_bs_depth13000))
+OTU = t(as(otu_table(China_bs_depth13000),"matrix"))
+China_bs_depth13000_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#Fig. S3B, rhizosphere pcoa
+China_rhizosphere = subset_samples(China_phyloseq_complete, Type == "Rhizosphere")
+China_rhizosphere_depth13000 <- rarefy_even_depth(China_rhizosphere, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_rhizosphere_depth13000.ord <- ordinate(China_rhizosphere_depth13000, "PCoA", "bray")
+China_rhizosphere_depth13000_PCoA_1 = plot_ordination(China_rhizosphere_depth13000, China_rhizosphere_depth13000.ord, type="samples") #, label="Sample")
+print(China_rhizosphere_depth13000_PCoA_1)
+tiff("Bray_depth13000_PCoA_2_rhizosphere.tiff", width = 6, height = 4, units = 'in', res = 300)
+Bray_depth13000_PCoA_2_rhizosphere <- China_rhizosphere_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - Bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(Bray_depth13000_PCoA_2_rhizosphere)
+dev.off()
+#test with permanova (adonis)
+df = data.frame(sample_data(China_rhizosphere_depth13000))
+OTU = t(as(otu_table(China_rhizosphere_depth13000),"matrix"))
+China_rhizosphere_depth13000_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+####Fig S4, Statistical outputs were manually added to the figures
+#5cae8eb2f201b91b981b4b69f7bd1acc, fictibacillus asv id
+#b2f1e46e34466cda8df8d5014320d4f0, sphingomonas asv id
+#asv table without two asvs (ficti and sphingo)
+pop_taxa = function(physeq, badTaxa){
+  allTaxa = taxa_names(physeq)
+  allTaxa <- allTaxa[!(allTaxa %in% badTaxa)]
+  return(prune_taxa(allTaxa, physeq))
+}
+badTaxa = c("5cae8eb2f201b91b981b4b69f7bd1acc", "b2f1e46e34466cda8df8d5014320d4f0")
+#from total
+China_phyloseq_complete_filter = pop_taxa(China_phyloseq_complete, badTaxa)
+#from bulksoil samples only
+China_bs_filter = pop_taxa(China_bs, badTaxa)
+#from rhizosphere samples only
+China_rhizosphere_filter = pop_taxa(China_rhizosphere, badTaxa)
+#PCoA's + permanovas without those asv's
+#Fig S4C PCoA bray-curtis all samples without fictibacillus and sphingomonas
+theme_set(theme_bw())
+China_phyloseq_complete_filter_depth13000 <- rarefy_even_depth(China_phyloseq_complete_filter, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_phyloseq_complete_depth13000.ord <- ordinate(China_phyloseq_complete_filter_depth13000, "PCoA", "bray")
+Bray_depth13000_PCoA_1 = plot_ordination(China_phyloseq_complete_filter_depth13000, China_phyloseq_complete_depth13000.ord, type="samples") #, label="Sample")
+print(Bray_depth13000_PCoA_1)
+tiff("Bray_depth13000_PCoA_2_all_noFictiNoSphingo.tiff", width = 6, height = 4, units = 'in', res = 300)
+Bray_depth13000_PCoA_2_all_noFictiNoSphingo <- Bray_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - Bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(Bray_depth13000_PCoA_2_all_noFictiNoSphingo)
+dev.off()
+#Fig S4A, PCoA bray-curtis bulksoil without fictibacillus and sphingomonas, Statistical outputs were manually added to the figures
+theme_set(theme_bw())
+China_bs_filter_depth13000 <- rarefy_even_depth(China_bs_filter, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_bs_filter_depth13000.ord <- ordinate(China_bs_filter_depth13000, "PCoA", "bray")
+Bray_depth13000_PCoA_1 = plot_ordination(China_bs_filter_depth13000, China_bs_filter_depth13000.ord, type="samples") #, label="Sample")
+print(Bray_depth13000_PCoA_1)
+tiff("Bray_depth13000_PCoA_2_bulksoil_noFictiNoSphingo.tiff", width = 6, height = 4, units = 'in', res = 300)
+Bray_depth13000_PCoA_2_bulksoil_noFictiNoSphingo <- Bray_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - Bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(Bray_depth13000_PCoA_2_bulksoil_noFictiNoSphingo)
+dev.off()
+#test with permanova (adonis)
+df = data.frame(sample_data(China_bs_filter_depth13000))
+OTU = t(as(otu_table(China_bs_filter_depth13000),"matrix"))
+China_bs_filter_depth13000_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#Fig S4B, PCoA bray-curtis bulksoil without fictibacillus and sphingomonas, Statistical outputs were manually added to the figures
+China_rhizosphere_filter_depth13000 <- rarefy_even_depth(China_rhizosphere_filter, sample.size = 13000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+China_rhizosphere_filter_depth13000.ord <- ordinate(China_rhizosphere_filter_depth13000, "PCoA", "bray")
+China_rhizosphere_filter_depth13000_PCoA_1 = plot_ordination(China_rhizosphere_filter_depth13000, China_rhizosphere_filter_depth13000.ord, type="samples") #, label="Sample")
+print(China_rhizosphere_filter_depth13000_PCoA_1)
+tiff("Bray_depth13000_PCoA_2_rhizosphere_NoFictiNoSphingo.tiff", width = 6, height = 4, units = 'in', res = 300)
+Bray_depth13000_PCoA_2_rhizosphere_NoFictiNoSphingo <- China_rhizosphere_filter_depth13000_PCoA_1 +
+  geom_point(aes(fill=Group), size=4, colour="black", pch=21) +
+  #ggtitle("PCoA - Bray-Curtis") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.title=element_blank())
+print(Bray_depth13000_PCoA_2_rhizosphere_NoFictiNoSphingo)
+dev.off()
+#test
+df = data.frame(sample_data(China_rhizosphere_filter_depth13000))
+OTU = t(as(otu_table(China_rhizosphere_filter_depth13000),"matrix"))
+China_rhizosphere_filter_depth13000_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+########For supplementary table 3, sequentially filtered out top differentially abundant ASVs (based on p-values from DESeq2 analysis), took ranked ASV's from excel file and (really ugly) added to 'pop_taxa' as string
+########then tested with adonis (also visualized in pcoa, but these are not in the manuscript, too bulky
+#start with top300 lowest p-values
+badTaxa = c("53587d28a1692b10bf6b6d932841131f","7fda79c32b678117f4ceaf09f710ad44","9e2867930ec32c2a73ab77767ba6e218","07bf216e89205a0e6a63f952c3996f23","3d29b9843e95e4bfb96ee7d81261e2c6","b9afe7b4ba6bab57e6973b9b4fde2cdd","5cae8eb2f201b91b981b4b69f7bd1acc","f54a856ca7048211cae0ef88e2c5cf3e","ab357d8171859db1c6c2d6c802c4f18f","b8ecc68f0dc5304cb2710913e800cd72","9bb8d5ae48127d618e282e565a31e98f","233a018d2a76674663715e666fbffaae","a7b83e8c54f214a28f13e4eb48615d96","4e461d12e074c85e80b51c23b99cc2ba","5dd4682ed83f7e6392462813ee543824","52228dae641b5fa845c3c571dc85b8af","e73b8dd3b8a41e25a59075485a50d55a","0125fe204188a6842290cbd01f9b07e1","1223635b08a25b27f9ccd81849071ebb","0e8617e8bebfed3db29cf9511babf441","bf59ecb349f9818dd8e716f3ccfa537c","a0253ab4eb0d319960ef4f6a7a7c347f","75a2ae5479e17040b569e45242713596","57eb602b26476bd04b87009bfba3a419","cff2b588efaa9f38cf253502a4fdcd3f","e3344ac12b0b52d246264d06382f1b5d","22601df75c7fe53890dc0aaffcfb9fd5","ef75f2f9675e80eb14546df81154d79a","95132ff808fe2194b6448e4688749521","a5d8a2212b27af08de3f8159459407db","40d7b045e04faa4c926998422c0d9f98","e0b24a4ff65fd55da5192594f7c6f479","f5ad3ec16fa225d98986a2bfd30234bc","639528e19c12773a612c447a86ac2bf5","4f78af21c5ec9ba6274646b4eea7b670","019641f3590bd6a9b8e76c5f1cb002cd","83479353c695cf737e2fd0870943a1e7","2f64b0730946a7cd3c20efbe161bca31","e5dfd52caa44685ae00ace5a2dc74316","61add216e2740e2ebc7dc009d3d924e7","3ae14928e84a28a94e23c875041d2196","167086a8c2b0f1767e0bcb1fd44f4aa4","029bb987c216425a7795a6c9a35d630e","f3b45b41bb193ae01d651ba377a4cc20","3985301d8ea473d54415fd9e91f705b3","201bf3f7c8ce3a6e83b081253d2a2832","a4c180bfc4056c9a07576b726a4a9bd2","b2f1e46e34466cda8df8d5014320d4f0","d7af0932b05ff587484784d5e56b753b","e31fde76c1206d50dee910fb3a16fd96","0b8e34ef5217190301d478ee2a4507b3","50b9541a662555d6394726e21c9a0a40","af268a4a98e6277c59f834280b64b1a4","0e84a243b0b29a7efdffbeb8f0f808aa","2fd50eb71f22e112d117c588f5c01f15","754aca08d84c9cc22140b6753cb6065f","2b44d8c62126bd0eb4091b40256ad3bf","86a599fc58ac541c0bc5a9c57bf63703","45cff4b524957a7c55e1dbe052a3d446","cac1667e816b3352ee4419330c6ad52a","e65384470152850cd40546994a022bcd","ca32e45b01b66af8e8d40cedfa17e622","5165f10b47e3605037145f7e4b0244b0","aeca7ddf0d465be26a291bd33dcfc4a1","55c40a20bdd972b4616827ae1ba8c038","ae11e6ec62ae44a886c6f17f006248a3","9fa1bf9b0a25e6bccc272535a4405768","29a4d410acd6541dcbcbc47b04d195d3","007e13fd50c6a6df3002e777209206e0","798350daedcd6c4bd9d27eb2b0efcf6c","97891bd8874d43841dac437fca997f4b","213c20106d9a9ae195c03ad90d514df1","5bfaacf92b70a3f5269c4af6701c8b04","8896b547bb1f1a2aa4d0c5d5feff5a89","2651e5b5486d90020de16aa8a434c53f","a5896b8bb153e2e0852b707502651cde","bed58983ed7447c2364263b1a93f2f4e","d4eeffa24460ff6b9ead2ea83d96815e","93335c7d22ca6b2d746b03cb6b1b36c1","1edca6d14b015b59a737339f132ed297","6ef296b8c3287fbaa25d2a1ed7212de7","4b359808d73e6ddb8b41cb1ec767cc02","8b1c5e9428e1d7d562e7911f6d67f12c","f05067da08a9b9d560cfc51c57ca1cb7","f2688a13e28084747a1eac1523c395b4","817923a453402df62370fdb2b2961f49","d4b98a2fb991075bc24d84f11abdf052","2e62da366f1778effe3d66995506b659","7c6908005b8524c38629d8206cdf7b7a","fd029182ca5d637f97a56c06fc491f1e","4eb6abeae57d5069414626dbb2f5ae2b","f21a4954ea661a8d45cbc302ba901c80","e7928c132e4f41dea904ea4e2254cd08","c442f4bee31bb10c77f995658e5726d1","4e26762a3ed6484497e52e1f639ee99a","8672ad9406d3ff6308648a1a041896a8","b900d9e5db9a62089d9731768006d96f","3ee85754d7293701cb0c8934d49f8e20","655e015a91f2f93c17eb07bbf15a5ecd","6207f38e45f6d0d2523b6a8132e59bff","01c44761db7b4bfe36c70de699a7bca7","d94f01ea672f9b1974e50dbcbe880f67","6821da822f9aedead47a9a5c9e9c22df","ed055ce4d435d92bac82a099e5a0da6d","b1de14f025cd2145cbb7535567203c7c","c1e69b59a89437730192b64a93781d97","09ee6d54f47135da4d0762af52aeba58","d47932edc43e863facf82340649dc11e","a4d15254a407a465228a9da4ba43871a","5ba38a6d5fb7325a210099e54e8328db","ef7aa722597c95899016cbf200d094bb","b08c58f22f9419f3b002a526a15d5cab","404cebeb2e4ba9d4cc68230452e9f0d2","6f0a3d380093b34b9ba52d0a75e0215c","16094a16ab3a6a47445c54a3bb7a2ee9","c3390798b0469321c4867db4d6f1ad6c","5c61a8b1c2c358332d60f84f777713d1","fbc76e103c328384cee07144334cc45f","e9c9e1266dcc172d1c993b246a3e4ccb","78d02c168b0801847032892f49d7ea72","f9d5b8fce62a6eef00d1496b59acdb8d","a5039ad5769736eb7599842f42ab399d","45fdf375c4a964fbf5eb965f097485f8","d80b417cf2fe7b04b404d5813098b142","e75022bea113048a1bad2cec5846905a","4e04febd3a3983247eb88dd815aa33b1","9141c1de3ccb2918552c1c5727eed176","8c7ec0b8dd47f7614880b8ff885d4cbd","4419fa67aaa6c9b5f75de54d9365025f","eebc937c9fd06ca0fe0b053248e2c74e","4781794c81d5356398b635b4e00beb6a","614277f8393e91e5b09870828898d070","c5416eb0fc0b034ca45b2de9cebb1cdc","9805a194d437750496f60fb1d797c332","9925b633cf5955b4670dc8a35165ba36","2e3a740cd22e6cf2f87ee82f42af1441","b73545121ed32b1b7aa887e22a771a43","0f293a3aca2d198102905083698334f4","58a940b4a99e9ec71c7fa567afc0c0d4","c62d9cc1d8647a0ccef99419966fa87e","f907c54dc07470732ac24e6728ef6743","ec6d082ce319677281371a57651ebde7","925b1e36c06ebe13f2abfc0a3d105354","53d550bd135672550ad4fd7776eba37c","5fd07e1800cac14f123a496d0abee6da","c8f3f257324aef6e9a25ac490a5992e9","2796ceff498b16a511ddefbd8be552f0","0dfcb8d4d6d91879324347bf825f0135","bac6b1c127dcac1a3932010082e1883b","8a17ef19aea16c3f618251874a81c1bc","fbfa25b1c5eee94ac25b22f6e0174c7b","16ddf9d79b171aff4448c58b4931c176","17b7bd22138344ee12202659a892cd8f","a838793fe7449981251c7fc178fe35dc","909f2480f0d358c6849685236c52b472","690eaaadb5d8e2979c190812b2c2523b","71f75fd8eb8a8795aea43fc1f31200b0","baf0c729b879d05ec531be9da8954e61","08b2b5ee4aa9257d3f923d90b9b9a9b8","39a661303b27445a5cd2e6fa47d6d5c3","0377e6b8bf8e6d7717b305c7c241d64a","7906705ce17f5453f5d17454eaf759e1","fdefcb43c7f6d8a82b470d46d26fb162","9eecf14bf626170b76e66cd36be8baa3","65b720f198581c02b7730d0c26d1bd75","5a3b97b70b1c961c7b7f161bb45b8929","0eb4b4b96c090bd5e4f301ab9df17529","e4a1a31769a97eb11ff157b850c3a91f","b26e5b0b456ed65f7170fedc93fd51d0","1c113ec0fa1b1f932c739636cd0bc5ac","39b17d83bf1767c3f698c640ba8bfa98","b70dee362a0f686f92de9a8a863a9a6a","13af187330047aa1c30e1a1edce0fb64","27ff68943cf38df2edfd28f206faa862","221a3bef19bf31a6d3a775cb7cef7a4e","a3edc409aa9cd7f55360c329e965c17d","53e0b7beb03e3cf735f434700df8c2fc","07211859627af4e124657bb729ef4172","5be9fe999f6161bc99add3531a7ffa45","06e0880f20433e01fd59550ca8509a37","64fb4fd838afef9b7c1fafef6f3687c5","451d3416944cf2d17ed532c87b0dbc24","bedf5e7b43829351cf907f8b2b3621d2","62783e4edc69a5fc78121bc750f2c4bf","d93e1b0720f8d631554ef86707d8cf3d","f4d7ad0fc2301c6cab7d0dcf0465491b","1f6f8c894853b13c9c9bb83787a2d572","588b21219d8bc4e76a3d03ccc858c1dd","457d6b4295961f51c38bf00a87899482","1603a9eff2bce8b0d24dfad9b25394fe","0678990db938a8f31c7ed1be31a8a0eb","e89cfd4f0155a67ff7ba05380fae621c","6051f9b9776d0d7319ef356688400b2f","c65c8888efd154a963c621fb2587d85b","b8d18dbb64e9d2f2b96af4aa0296e5ca","e02eac5572921cc4127280aafa5c8979","684dc1006df37f9f59a4cb258f164faf","949576412bc5743e2a9dbb7f4674c51b","91d2a40e0c011c1064542943e7ca5008","aa5f7e13b364bd605cfc97c20708eb1f","e61f53b8ea2e4c5c9d2b31c2b653ac77","73f94337bf754d267a9fc87b0836fee9","dd7dc0743850dd7a26d4ea8e78c70267","5d0c9b5b29647a9391f2b1b7a88b9dfc","222e4c9b23e479206bda39451a6c9865","d0d79c6abb7c583a7b45fb90c22875f6","f5ee44ff77abb348458503d011fcdfa6","c888a1e18b7fb03f18e21d1ed29fc60b","0ca729987727cd554344cb5b5c62888f","9fe747a6be235a40bf869350e514dd5b","cd2d57347b9e915e216926f6b11fd49b","a8518bb6fcaa8c99009a34c2445f9f6d","572bb9c5b092d4deed837e806bf70203","ea7ff22095868b1f3a5489cd47e2c83f","ec9471bed021e73fb6614afb7de5be3e","309ce2c6a8c28cd6861da4153de38a22","147e66a856cdd92ecb3717f22443eb57","66d3271550c8abf2363877149c445915","1d315f1ffc4e98a4459c016d31a3132e","893e638ea0af16a436d969e01f8ccff9","d975ca5cb3de3ce4644287cfd68a9df7","b7875cccb8922420b1615eff7ab0d53d","6a97c371a112524b5cbd3e70cabb62a5","6c66fc383b85637f9728c4724cc92870","ff61f2a8f9201f6b8f95d20f0106ab3f","1d1fa3e3cae6ed1d0736c56a4ae7ffd9","e9f08ad02958f2f77c9de93dc649c22c","da8c13adc03136b624bc83bbcaad4ffb","02a0a6d3a1157a4a160ec055b7ec56b6","e50dd2e9c2aa818fb3d8d45e6331dc49","adb6bad7016ed2453bf33c8694ba125b","b14561e896fd3d945889ae9d6a1ab1f2","ba41d8568f172038c88e23debe7ae5f6","ca20dc5ca6172467cade003eddd66807","506f02c8d45e8d609824bddecd40f8d5","f9f7bd1dfbcd9a05679bfd7612cc54bc","9bca8db9310dba97f89f292a50e423cb","aa0883b0fe11d69a73f5e86d6530ce5b","3f3aca72bcb2d78a143fa9b5989e9aac","e53a34e546b28997777c6a69c84b60f7","03bf35b329ad2d4e6f7037e8bc3c62e9","dee9dd56d6d9ffa53f634b289f5874c1","384f7add85549f9a9f75e4b8603161e1","b953a850d817cd834b9e78acd82dcd96","471d09439155133307dc12d1d95dd630","7fe026bfc31c7a346d0dbc130754831d","89feb0ff1e395813d6b18d7c11cffd09","6271c9efa1b066eb7f750e9f17c1c5b0","ca1efc536ca594ebdcedbca14bd23609","b986d4b0c5d0d081dcc6d19093a17cd7","6c299c5bd0b0bcc76c0e449258ecb180","cd8395bd933302193f58c77cc234cc74","ee99c36a2c33d30c613e68888c952a11","020ef980cacbc240a0ac7b343c74c0e4","2eee5ef67978b70b4eb11b28afff2eea","d85114a960fdc2d001aaeae25966ace1","57ba45789ccee5360f54d154ff13d49e","19cd68f09ee4c528a628ee4cd2fa8235","0d8b34c3b58c4f75bfcfe84ea5f014ca","6541bb0f3eacd5a49b681ac10278d8f8","6a813afadbfbc8b6f61232276198e82f","90cf819d369f1042f0b96ba99d373de9","c1909b7cafa0118595cc1e32d649e1e0","955ca11059d9278c4a3828b60221c96b","52fbbcfb77a44519827547d5a9f69730","2ddabfdda02f72ba144108c52a8938aa","aa8120b0cb4e2dff41fed3431f938d9c","2315776c997e53628826d4628d4da768","541eb20aa7f2249ec33dd9537381a5e3","98d99e78178fe2b15420ae9da2d49b27","84f6a8634c89ccd851ef023d93e29b94","8b770d23d22b43d228ec89ff22877498","1e9893464d1b7df61e6b8cac97bf54df","f17e23475f0dba3213c43e1bf66a0be1","edceaa3db2308e913ca96ffa37e4f47e","a5eb8e067972c622746427a614213e4b","1c4a44694bd1539b402d5e5bc147c6d9","021b8a2deea6d916b6a316f39dab05e2","ceb1540c7b9e680a3d5f7072a5739295","3b2e422250bda6f6c2a3332e8fce17c9","0f7a515a7d86cccc20b708581b6d3a8e","30e9a2d31089865ed4470099ecd8a3a7","dc8abe81993ccb2473284ecbc1c2c8aa","c0a07f253a8ac01a81a3e74c0ce1f943","d20113bf5151353760fdba4a2ab5627a","181e1f55c293448dbbb259c6fdfdc143","b57e103cf8b132aa2f3c62740892c08f","ee4448fe851bf61f41b89631e099056b","72b821a83f73acd28e705af1c1d80d95","6741d92f08e4dea68e64d113a4a4ae82","2829260cf5ea4a94d9477423168986f0","3635108fa7eaa085fd17a2ddbcb4e04b","69dceeb6936304bc1f00d7da63caa206","d82c1b6a02e25d0fa8f28c29de01a914","77dcfa82c3612a4d9f38f4e5c3a58b1f","25ed431d309e7a007136b3ed5a8ca150","9f06dfcb714367f4d06def2218905b88","0916a52c6a5c1a9b9bcfa57db021c7f0","eaee20a7dc7e097d996a2853af8d9b05","397dffb688778307fa9e75c7c77f3449")
+China_deseq_filter_1 = pop_taxa(China_bs_filter, badTaxa)
+#check sample_sums for min seq depth
+#9000 as depth (keeping all samples)
+China_deseq_filter_1_depth9000 <- rarefy_even_depth(China_deseq_filter_1, sample.size = 9000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+#test
+df = data.frame(sample_data(China_deseq_filter_1_depth9000))
+OTU = t(as(otu_table(China_deseq_filter_1_depth9000),"matrix"))
+China_deseq_filter_top300_depth9000_PCoA_2_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#top200 lowest p-values
+badTaxa = c("53587d28a1692b10bf6b6d932841131f","7fda79c32b678117f4ceaf09f710ad44","9e2867930ec32c2a73ab77767ba6e218","07bf216e89205a0e6a63f952c3996f23","3d29b9843e95e4bfb96ee7d81261e2c6","b9afe7b4ba6bab57e6973b9b4fde2cdd","5cae8eb2f201b91b981b4b69f7bd1acc","f54a856ca7048211cae0ef88e2c5cf3e","ab357d8171859db1c6c2d6c802c4f18f","b8ecc68f0dc5304cb2710913e800cd72","9bb8d5ae48127d618e282e565a31e98f","233a018d2a76674663715e666fbffaae","a7b83e8c54f214a28f13e4eb48615d96","4e461d12e074c85e80b51c23b99cc2ba","5dd4682ed83f7e6392462813ee543824","52228dae641b5fa845c3c571dc85b8af","e73b8dd3b8a41e25a59075485a50d55a","0125fe204188a6842290cbd01f9b07e1","1223635b08a25b27f9ccd81849071ebb","0e8617e8bebfed3db29cf9511babf441","bf59ecb349f9818dd8e716f3ccfa537c","a0253ab4eb0d319960ef4f6a7a7c347f","75a2ae5479e17040b569e45242713596","57eb602b26476bd04b87009bfba3a419","cff2b588efaa9f38cf253502a4fdcd3f","e3344ac12b0b52d246264d06382f1b5d","22601df75c7fe53890dc0aaffcfb9fd5","ef75f2f9675e80eb14546df81154d79a","95132ff808fe2194b6448e4688749521","a5d8a2212b27af08de3f8159459407db","40d7b045e04faa4c926998422c0d9f98","e0b24a4ff65fd55da5192594f7c6f479","f5ad3ec16fa225d98986a2bfd30234bc","639528e19c12773a612c447a86ac2bf5","4f78af21c5ec9ba6274646b4eea7b670","019641f3590bd6a9b8e76c5f1cb002cd","83479353c695cf737e2fd0870943a1e7","2f64b0730946a7cd3c20efbe161bca31","e5dfd52caa44685ae00ace5a2dc74316","61add216e2740e2ebc7dc009d3d924e7","3ae14928e84a28a94e23c875041d2196","167086a8c2b0f1767e0bcb1fd44f4aa4","029bb987c216425a7795a6c9a35d630e","f3b45b41bb193ae01d651ba377a4cc20","3985301d8ea473d54415fd9e91f705b3","201bf3f7c8ce3a6e83b081253d2a2832","a4c180bfc4056c9a07576b726a4a9bd2","b2f1e46e34466cda8df8d5014320d4f0","d7af0932b05ff587484784d5e56b753b","e31fde76c1206d50dee910fb3a16fd96","0b8e34ef5217190301d478ee2a4507b3","50b9541a662555d6394726e21c9a0a40","af268a4a98e6277c59f834280b64b1a4","0e84a243b0b29a7efdffbeb8f0f808aa","2fd50eb71f22e112d117c588f5c01f15","754aca08d84c9cc22140b6753cb6065f","2b44d8c62126bd0eb4091b40256ad3bf","86a599fc58ac541c0bc5a9c57bf63703","45cff4b524957a7c55e1dbe052a3d446","cac1667e816b3352ee4419330c6ad52a","e65384470152850cd40546994a022bcd","ca32e45b01b66af8e8d40cedfa17e622","5165f10b47e3605037145f7e4b0244b0","aeca7ddf0d465be26a291bd33dcfc4a1","55c40a20bdd972b4616827ae1ba8c038","ae11e6ec62ae44a886c6f17f006248a3","9fa1bf9b0a25e6bccc272535a4405768","29a4d410acd6541dcbcbc47b04d195d3","007e13fd50c6a6df3002e777209206e0","798350daedcd6c4bd9d27eb2b0efcf6c","97891bd8874d43841dac437fca997f4b","213c20106d9a9ae195c03ad90d514df1","5bfaacf92b70a3f5269c4af6701c8b04","8896b547bb1f1a2aa4d0c5d5feff5a89","2651e5b5486d90020de16aa8a434c53f","a5896b8bb153e2e0852b707502651cde","bed58983ed7447c2364263b1a93f2f4e","d4eeffa24460ff6b9ead2ea83d96815e","93335c7d22ca6b2d746b03cb6b1b36c1","1edca6d14b015b59a737339f132ed297","6ef296b8c3287fbaa25d2a1ed7212de7","4b359808d73e6ddb8b41cb1ec767cc02","8b1c5e9428e1d7d562e7911f6d67f12c","f05067da08a9b9d560cfc51c57ca1cb7","f2688a13e28084747a1eac1523c395b4","817923a453402df62370fdb2b2961f49","d4b98a2fb991075bc24d84f11abdf052","2e62da366f1778effe3d66995506b659","7c6908005b8524c38629d8206cdf7b7a","fd029182ca5d637f97a56c06fc491f1e","4eb6abeae57d5069414626dbb2f5ae2b","f21a4954ea661a8d45cbc302ba901c80","e7928c132e4f41dea904ea4e2254cd08","c442f4bee31bb10c77f995658e5726d1","4e26762a3ed6484497e52e1f639ee99a","8672ad9406d3ff6308648a1a041896a8","b900d9e5db9a62089d9731768006d96f","3ee85754d7293701cb0c8934d49f8e20","655e015a91f2f93c17eb07bbf15a5ecd","6207f38e45f6d0d2523b6a8132e59bff","01c44761db7b4bfe36c70de699a7bca7","d94f01ea672f9b1974e50dbcbe880f67","6821da822f9aedead47a9a5c9e9c22df","ed055ce4d435d92bac82a099e5a0da6d","b1de14f025cd2145cbb7535567203c7c","c1e69b59a89437730192b64a93781d97","09ee6d54f47135da4d0762af52aeba58","d47932edc43e863facf82340649dc11e","a4d15254a407a465228a9da4ba43871a","5ba38a6d5fb7325a210099e54e8328db","ef7aa722597c95899016cbf200d094bb","b08c58f22f9419f3b002a526a15d5cab","404cebeb2e4ba9d4cc68230452e9f0d2","6f0a3d380093b34b9ba52d0a75e0215c","16094a16ab3a6a47445c54a3bb7a2ee9","c3390798b0469321c4867db4d6f1ad6c","5c61a8b1c2c358332d60f84f777713d1","fbc76e103c328384cee07144334cc45f","e9c9e1266dcc172d1c993b246a3e4ccb","78d02c168b0801847032892f49d7ea72","f9d5b8fce62a6eef00d1496b59acdb8d","a5039ad5769736eb7599842f42ab399d","45fdf375c4a964fbf5eb965f097485f8","d80b417cf2fe7b04b404d5813098b142","e75022bea113048a1bad2cec5846905a","4e04febd3a3983247eb88dd815aa33b1","9141c1de3ccb2918552c1c5727eed176","8c7ec0b8dd47f7614880b8ff885d4cbd","4419fa67aaa6c9b5f75de54d9365025f","eebc937c9fd06ca0fe0b053248e2c74e","4781794c81d5356398b635b4e00beb6a","614277f8393e91e5b09870828898d070","c5416eb0fc0b034ca45b2de9cebb1cdc","9805a194d437750496f60fb1d797c332","9925b633cf5955b4670dc8a35165ba36","2e3a740cd22e6cf2f87ee82f42af1441","b73545121ed32b1b7aa887e22a771a43","0f293a3aca2d198102905083698334f4","58a940b4a99e9ec71c7fa567afc0c0d4","c62d9cc1d8647a0ccef99419966fa87e","f907c54dc07470732ac24e6728ef6743","ec6d082ce319677281371a57651ebde7","925b1e36c06ebe13f2abfc0a3d105354","53d550bd135672550ad4fd7776eba37c","5fd07e1800cac14f123a496d0abee6da","c8f3f257324aef6e9a25ac490a5992e9","2796ceff498b16a511ddefbd8be552f0","0dfcb8d4d6d91879324347bf825f0135","bac6b1c127dcac1a3932010082e1883b","8a17ef19aea16c3f618251874a81c1bc","fbfa25b1c5eee94ac25b22f6e0174c7b","16ddf9d79b171aff4448c58b4931c176","17b7bd22138344ee12202659a892cd8f","a838793fe7449981251c7fc178fe35dc","909f2480f0d358c6849685236c52b472","690eaaadb5d8e2979c190812b2c2523b","71f75fd8eb8a8795aea43fc1f31200b0","baf0c729b879d05ec531be9da8954e61","08b2b5ee4aa9257d3f923d90b9b9a9b8","39a661303b27445a5cd2e6fa47d6d5c3","0377e6b8bf8e6d7717b305c7c241d64a","7906705ce17f5453f5d17454eaf759e1","fdefcb43c7f6d8a82b470d46d26fb162","9eecf14bf626170b76e66cd36be8baa3","65b720f198581c02b7730d0c26d1bd75","5a3b97b70b1c961c7b7f161bb45b8929","0eb4b4b96c090bd5e4f301ab9df17529","e4a1a31769a97eb11ff157b850c3a91f","b26e5b0b456ed65f7170fedc93fd51d0","1c113ec0fa1b1f932c739636cd0bc5ac","39b17d83bf1767c3f698c640ba8bfa98","b70dee362a0f686f92de9a8a863a9a6a","13af187330047aa1c30e1a1edce0fb64","27ff68943cf38df2edfd28f206faa862","221a3bef19bf31a6d3a775cb7cef7a4e","a3edc409aa9cd7f55360c329e965c17d","53e0b7beb03e3cf735f434700df8c2fc","07211859627af4e124657bb729ef4172","5be9fe999f6161bc99add3531a7ffa45","06e0880f20433e01fd59550ca8509a37","64fb4fd838afef9b7c1fafef6f3687c5","451d3416944cf2d17ed532c87b0dbc24","bedf5e7b43829351cf907f8b2b3621d2","62783e4edc69a5fc78121bc750f2c4bf","d93e1b0720f8d631554ef86707d8cf3d","f4d7ad0fc2301c6cab7d0dcf0465491b","1f6f8c894853b13c9c9bb83787a2d572","588b21219d8bc4e76a3d03ccc858c1dd","457d6b4295961f51c38bf00a87899482","1603a9eff2bce8b0d24dfad9b25394fe","0678990db938a8f31c7ed1be31a8a0eb","e89cfd4f0155a67ff7ba05380fae621c","6051f9b9776d0d7319ef356688400b2f","c65c8888efd154a963c621fb2587d85b","b8d18dbb64e9d2f2b96af4aa0296e5ca","e02eac5572921cc4127280aafa5c8979","684dc1006df37f9f59a4cb258f164faf","949576412bc5743e2a9dbb7f4674c51b","91d2a40e0c011c1064542943e7ca5008","aa5f7e13b364bd605cfc97c20708eb1f")
+China_deseq_filter_2 = pop_taxa(China_bs_filter, badTaxa)
+#check sample_sums for min seq depth
+#9000 as depth (keeping all samples)
+China_deseq_filter_2_depth9000 <- rarefy_even_depth(China_deseq_filter_2, sample.size = 9000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+#test
+df = data.frame(sample_data(China_deseq_filter_2_depth9000))
+OTU = t(as(otu_table(China_deseq_filter_2_depth9000),"matrix"))
+China_deseq_filter_top200_depth9000_PCoA_2_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#top100 lowest p-values
+badTaxa = c("53587d28a1692b10bf6b6d932841131f","7fda79c32b678117f4ceaf09f710ad44","9e2867930ec32c2a73ab77767ba6e218","07bf216e89205a0e6a63f952c3996f23","3d29b9843e95e4bfb96ee7d81261e2c6","b9afe7b4ba6bab57e6973b9b4fde2cdd","5cae8eb2f201b91b981b4b69f7bd1acc","f54a856ca7048211cae0ef88e2c5cf3e","ab357d8171859db1c6c2d6c802c4f18f","b8ecc68f0dc5304cb2710913e800cd72","9bb8d5ae48127d618e282e565a31e98f","233a018d2a76674663715e666fbffaae","a7b83e8c54f214a28f13e4eb48615d96","4e461d12e074c85e80b51c23b99cc2ba","5dd4682ed83f7e6392462813ee543824","52228dae641b5fa845c3c571dc85b8af","e73b8dd3b8a41e25a59075485a50d55a","0125fe204188a6842290cbd01f9b07e1","1223635b08a25b27f9ccd81849071ebb","0e8617e8bebfed3db29cf9511babf441","bf59ecb349f9818dd8e716f3ccfa537c","a0253ab4eb0d319960ef4f6a7a7c347f","75a2ae5479e17040b569e45242713596","57eb602b26476bd04b87009bfba3a419","cff2b588efaa9f38cf253502a4fdcd3f","e3344ac12b0b52d246264d06382f1b5d","22601df75c7fe53890dc0aaffcfb9fd5","ef75f2f9675e80eb14546df81154d79a","95132ff808fe2194b6448e4688749521","a5d8a2212b27af08de3f8159459407db","40d7b045e04faa4c926998422c0d9f98","e0b24a4ff65fd55da5192594f7c6f479","f5ad3ec16fa225d98986a2bfd30234bc","639528e19c12773a612c447a86ac2bf5","4f78af21c5ec9ba6274646b4eea7b670","019641f3590bd6a9b8e76c5f1cb002cd","83479353c695cf737e2fd0870943a1e7","2f64b0730946a7cd3c20efbe161bca31","e5dfd52caa44685ae00ace5a2dc74316","61add216e2740e2ebc7dc009d3d924e7","3ae14928e84a28a94e23c875041d2196","167086a8c2b0f1767e0bcb1fd44f4aa4","029bb987c216425a7795a6c9a35d630e","f3b45b41bb193ae01d651ba377a4cc20","3985301d8ea473d54415fd9e91f705b3","201bf3f7c8ce3a6e83b081253d2a2832","a4c180bfc4056c9a07576b726a4a9bd2","b2f1e46e34466cda8df8d5014320d4f0","d7af0932b05ff587484784d5e56b753b","e31fde76c1206d50dee910fb3a16fd96","0b8e34ef5217190301d478ee2a4507b3","50b9541a662555d6394726e21c9a0a40","af268a4a98e6277c59f834280b64b1a4","0e84a243b0b29a7efdffbeb8f0f808aa","2fd50eb71f22e112d117c588f5c01f15","754aca08d84c9cc22140b6753cb6065f","2b44d8c62126bd0eb4091b40256ad3bf","86a599fc58ac541c0bc5a9c57bf63703","45cff4b524957a7c55e1dbe052a3d446","cac1667e816b3352ee4419330c6ad52a","e65384470152850cd40546994a022bcd","ca32e45b01b66af8e8d40cedfa17e622","5165f10b47e3605037145f7e4b0244b0","aeca7ddf0d465be26a291bd33dcfc4a1","55c40a20bdd972b4616827ae1ba8c038","ae11e6ec62ae44a886c6f17f006248a3","9fa1bf9b0a25e6bccc272535a4405768","29a4d410acd6541dcbcbc47b04d195d3","007e13fd50c6a6df3002e777209206e0","798350daedcd6c4bd9d27eb2b0efcf6c","97891bd8874d43841dac437fca997f4b","213c20106d9a9ae195c03ad90d514df1","5bfaacf92b70a3f5269c4af6701c8b04","8896b547bb1f1a2aa4d0c5d5feff5a89","2651e5b5486d90020de16aa8a434c53f","a5896b8bb153e2e0852b707502651cde","bed58983ed7447c2364263b1a93f2f4e","d4eeffa24460ff6b9ead2ea83d96815e","93335c7d22ca6b2d746b03cb6b1b36c1","1edca6d14b015b59a737339f132ed297","6ef296b8c3287fbaa25d2a1ed7212de7","4b359808d73e6ddb8b41cb1ec767cc02","8b1c5e9428e1d7d562e7911f6d67f12c","f05067da08a9b9d560cfc51c57ca1cb7","f2688a13e28084747a1eac1523c395b4","817923a453402df62370fdb2b2961f49","d4b98a2fb991075bc24d84f11abdf052","2e62da366f1778effe3d66995506b659","7c6908005b8524c38629d8206cdf7b7a","fd029182ca5d637f97a56c06fc491f1e","4eb6abeae57d5069414626dbb2f5ae2b","f21a4954ea661a8d45cbc302ba901c80","e7928c132e4f41dea904ea4e2254cd08","c442f4bee31bb10c77f995658e5726d1","4e26762a3ed6484497e52e1f639ee99a","8672ad9406d3ff6308648a1a041896a8","b900d9e5db9a62089d9731768006d96f","3ee85754d7293701cb0c8934d49f8e20","655e015a91f2f93c17eb07bbf15a5ecd","6207f38e45f6d0d2523b6a8132e59bff")
+China_deseq_filter_3 = pop_taxa(China_bs_filter, badTaxa)
+#check sample_sums for min seq depth
+#9000 as depth (keeping all samples)
+China_deseq_filter_3_depth9000 <- rarefy_even_depth(China_deseq_filter_3, sample.size = 9000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+#test
+df = data.frame(sample_data(China_deseq_filter_3_depth9000))
+OTU = t(as(otu_table(China_deseq_filter_3_depth9000),"matrix"))
+China_deseq_filter_top100_depth9000_PCoA_2_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#top50 lowest p-values
+badTaxa = c("53587d28a1692b10bf6b6d932841131f","7fda79c32b678117f4ceaf09f710ad44","9e2867930ec32c2a73ab77767ba6e218","07bf216e89205a0e6a63f952c3996f23","3d29b9843e95e4bfb96ee7d81261e2c6","b9afe7b4ba6bab57e6973b9b4fde2cdd","5cae8eb2f201b91b981b4b69f7bd1acc","f54a856ca7048211cae0ef88e2c5cf3e","ab357d8171859db1c6c2d6c802c4f18f","b8ecc68f0dc5304cb2710913e800cd72","9bb8d5ae48127d618e282e565a31e98f","233a018d2a76674663715e666fbffaae","a7b83e8c54f214a28f13e4eb48615d96","4e461d12e074c85e80b51c23b99cc2ba","5dd4682ed83f7e6392462813ee543824","52228dae641b5fa845c3c571dc85b8af","e73b8dd3b8a41e25a59075485a50d55a","0125fe204188a6842290cbd01f9b07e1","1223635b08a25b27f9ccd81849071ebb","0e8617e8bebfed3db29cf9511babf441","bf59ecb349f9818dd8e716f3ccfa537c","a0253ab4eb0d319960ef4f6a7a7c347f","75a2ae5479e17040b569e45242713596","57eb602b26476bd04b87009bfba3a419","cff2b588efaa9f38cf253502a4fdcd3f","e3344ac12b0b52d246264d06382f1b5d","22601df75c7fe53890dc0aaffcfb9fd5","ef75f2f9675e80eb14546df81154d79a","95132ff808fe2194b6448e4688749521","a5d8a2212b27af08de3f8159459407db","40d7b045e04faa4c926998422c0d9f98","e0b24a4ff65fd55da5192594f7c6f479","f5ad3ec16fa225d98986a2bfd30234bc","639528e19c12773a612c447a86ac2bf5","4f78af21c5ec9ba6274646b4eea7b670","019641f3590bd6a9b8e76c5f1cb002cd","83479353c695cf737e2fd0870943a1e7","2f64b0730946a7cd3c20efbe161bca31","e5dfd52caa44685ae00ace5a2dc74316","61add216e2740e2ebc7dc009d3d924e7","3ae14928e84a28a94e23c875041d2196","167086a8c2b0f1767e0bcb1fd44f4aa4","029bb987c216425a7795a6c9a35d630e","f3b45b41bb193ae01d651ba377a4cc20","3985301d8ea473d54415fd9e91f705b3","201bf3f7c8ce3a6e83b081253d2a2832","a4c180bfc4056c9a07576b726a4a9bd2","b2f1e46e34466cda8df8d5014320d4f0","d7af0932b05ff587484784d5e56b753b","e31fde76c1206d50dee910fb3a16fd96")
+China_deseq_filter_4 = pop_taxa(China_bs_filter, badTaxa)
+#check sample_sums for min seq depth
+#9000 as depth (keeping all samples)
+China_deseq_filter_4_depth9000 <- rarefy_even_depth(China_deseq_filter_4, sample.size = 9000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+#test
+df = data.frame(sample_data(China_deseq_filter_4_depth9000))
+OTU = t(as(otu_table(China_deseq_filter_4_depth9000),"matrix"))
+China_deseq_filter_top50_depth9000_PCoA_2_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
+#top400 lowest p-values
+badTaxa = c("53587d28a1692b10bf6b6d932841131f","7fda79c32b678117f4ceaf09f710ad44","9e2867930ec32c2a73ab77767ba6e218","07bf216e89205a0e6a63f952c3996f23","3d29b9843e95e4bfb96ee7d81261e2c6","b9afe7b4ba6bab57e6973b9b4fde2cdd","5cae8eb2f201b91b981b4b69f7bd1acc","f54a856ca7048211cae0ef88e2c5cf3e","ab357d8171859db1c6c2d6c802c4f18f","b8ecc68f0dc5304cb2710913e800cd72","9bb8d5ae48127d618e282e565a31e98f","233a018d2a76674663715e666fbffaae","a7b83e8c54f214a28f13e4eb48615d96","4e461d12e074c85e80b51c23b99cc2ba","5dd4682ed83f7e6392462813ee543824","52228dae641b5fa845c3c571dc85b8af","e73b8dd3b8a41e25a59075485a50d55a","0125fe204188a6842290cbd01f9b07e1","1223635b08a25b27f9ccd81849071ebb","0e8617e8bebfed3db29cf9511babf441","bf59ecb349f9818dd8e716f3ccfa537c","a0253ab4eb0d319960ef4f6a7a7c347f","75a2ae5479e17040b569e45242713596","57eb602b26476bd04b87009bfba3a419","cff2b588efaa9f38cf253502a4fdcd3f","e3344ac12b0b52d246264d06382f1b5d","22601df75c7fe53890dc0aaffcfb9fd5","ef75f2f9675e80eb14546df81154d79a","95132ff808fe2194b6448e4688749521","a5d8a2212b27af08de3f8159459407db","40d7b045e04faa4c926998422c0d9f98","e0b24a4ff65fd55da5192594f7c6f479","f5ad3ec16fa225d98986a2bfd30234bc","639528e19c12773a612c447a86ac2bf5","4f78af21c5ec9ba6274646b4eea7b670","019641f3590bd6a9b8e76c5f1cb002cd","83479353c695cf737e2fd0870943a1e7","2f64b0730946a7cd3c20efbe161bca31","e5dfd52caa44685ae00ace5a2dc74316","61add216e2740e2ebc7dc009d3d924e7","3ae14928e84a28a94e23c875041d2196","167086a8c2b0f1767e0bcb1fd44f4aa4","029bb987c216425a7795a6c9a35d630e","f3b45b41bb193ae01d651ba377a4cc20","3985301d8ea473d54415fd9e91f705b3","201bf3f7c8ce3a6e83b081253d2a2832","a4c180bfc4056c9a07576b726a4a9bd2","b2f1e46e34466cda8df8d5014320d4f0","d7af0932b05ff587484784d5e56b753b","e31fde76c1206d50dee910fb3a16fd96","0b8e34ef5217190301d478ee2a4507b3","50b9541a662555d6394726e21c9a0a40","af268a4a98e6277c59f834280b64b1a4","0e84a243b0b29a7efdffbeb8f0f808aa","2fd50eb71f22e112d117c588f5c01f15","754aca08d84c9cc22140b6753cb6065f","2b44d8c62126bd0eb4091b40256ad3bf","86a599fc58ac541c0bc5a9c57bf63703","45cff4b524957a7c55e1dbe052a3d446","cac1667e816b3352ee4419330c6ad52a","e65384470152850cd40546994a022bcd","ca32e45b01b66af8e8d40cedfa17e622","5165f10b47e3605037145f7e4b0244b0","aeca7ddf0d465be26a291bd33dcfc4a1","55c40a20bdd972b4616827ae1ba8c038","ae11e6ec62ae44a886c6f17f006248a3","9fa1bf9b0a25e6bccc272535a4405768","29a4d410acd6541dcbcbc47b04d195d3","007e13fd50c6a6df3002e777209206e0","798350daedcd6c4bd9d27eb2b0efcf6c","97891bd8874d43841dac437fca997f4b","213c20106d9a9ae195c03ad90d514df1","5bfaacf92b70a3f5269c4af6701c8b04","8896b547bb1f1a2aa4d0c5d5feff5a89","2651e5b5486d90020de16aa8a434c53f","a5896b8bb153e2e0852b707502651cde","bed58983ed7447c2364263b1a93f2f4e","d4eeffa24460ff6b9ead2ea83d96815e","93335c7d22ca6b2d746b03cb6b1b36c1","1edca6d14b015b59a737339f132ed297","6ef296b8c3287fbaa25d2a1ed7212de7","4b359808d73e6ddb8b41cb1ec767cc02","8b1c5e9428e1d7d562e7911f6d67f12c","f05067da08a9b9d560cfc51c57ca1cb7","f2688a13e28084747a1eac1523c395b4","817923a453402df62370fdb2b2961f49","d4b98a2fb991075bc24d84f11abdf052","2e62da366f1778effe3d66995506b659","7c6908005b8524c38629d8206cdf7b7a","fd029182ca5d637f97a56c06fc491f1e","4eb6abeae57d5069414626dbb2f5ae2b","f21a4954ea661a8d45cbc302ba901c80","e7928c132e4f41dea904ea4e2254cd08","c442f4bee31bb10c77f995658e5726d1","4e26762a3ed6484497e52e1f639ee99a","8672ad9406d3ff6308648a1a041896a8","b900d9e5db9a62089d9731768006d96f","3ee85754d7293701cb0c8934d49f8e20","655e015a91f2f93c17eb07bbf15a5ecd","6207f38e45f6d0d2523b6a8132e59bff","01c44761db7b4bfe36c70de699a7bca7","d94f01ea672f9b1974e50dbcbe880f67","6821da822f9aedead47a9a5c9e9c22df","ed055ce4d435d92bac82a099e5a0da6d","b1de14f025cd2145cbb7535567203c7c","c1e69b59a89437730192b64a93781d97","09ee6d54f47135da4d0762af52aeba58","d47932edc43e863facf82340649dc11e","a4d15254a407a465228a9da4ba43871a","5ba38a6d5fb7325a210099e54e8328db","ef7aa722597c95899016cbf200d094bb","b08c58f22f9419f3b002a526a15d5cab","404cebeb2e4ba9d4cc68230452e9f0d2","6f0a3d380093b34b9ba52d0a75e0215c","16094a16ab3a6a47445c54a3bb7a2ee9","c3390798b0469321c4867db4d6f1ad6c","5c61a8b1c2c358332d60f84f777713d1","fbc76e103c328384cee07144334cc45f","e9c9e1266dcc172d1c993b246a3e4ccb","78d02c168b0801847032892f49d7ea72","f9d5b8fce62a6eef00d1496b59acdb8d","a5039ad5769736eb7599842f42ab399d","45fdf375c4a964fbf5eb965f097485f8","d80b417cf2fe7b04b404d5813098b142","e75022bea113048a1bad2cec5846905a","4e04febd3a3983247eb88dd815aa33b1","9141c1de3ccb2918552c1c5727eed176","8c7ec0b8dd47f7614880b8ff885d4cbd","4419fa67aaa6c9b5f75de54d9365025f","eebc937c9fd06ca0fe0b053248e2c74e","4781794c81d5356398b635b4e00beb6a","614277f8393e91e5b09870828898d070","c5416eb0fc0b034ca45b2de9cebb1cdc","9805a194d437750496f60fb1d797c332","9925b633cf5955b4670dc8a35165ba36","2e3a740cd22e6cf2f87ee82f42af1441","b73545121ed32b1b7aa887e22a771a43","0f293a3aca2d198102905083698334f4","58a940b4a99e9ec71c7fa567afc0c0d4","c62d9cc1d8647a0ccef99419966fa87e","f907c54dc07470732ac24e6728ef6743","ec6d082ce319677281371a57651ebde7","925b1e36c06ebe13f2abfc0a3d105354","53d550bd135672550ad4fd7776eba37c","5fd07e1800cac14f123a496d0abee6da","c8f3f257324aef6e9a25ac490a5992e9","2796ceff498b16a511ddefbd8be552f0","0dfcb8d4d6d91879324347bf825f0135","bac6b1c127dcac1a3932010082e1883b","8a17ef19aea16c3f618251874a81c1bc","fbfa25b1c5eee94ac25b22f6e0174c7b","16ddf9d79b171aff4448c58b4931c176","17b7bd22138344ee12202659a892cd8f","a838793fe7449981251c7fc178fe35dc","909f2480f0d358c6849685236c52b472","690eaaadb5d8e2979c190812b2c2523b","71f75fd8eb8a8795aea43fc1f31200b0","baf0c729b879d05ec531be9da8954e61","08b2b5ee4aa9257d3f923d90b9b9a9b8","39a661303b27445a5cd2e6fa47d6d5c3","0377e6b8bf8e6d7717b305c7c241d64a","7906705ce17f5453f5d17454eaf759e1","fdefcb43c7f6d8a82b470d46d26fb162","9eecf14bf626170b76e66cd36be8baa3","65b720f198581c02b7730d0c26d1bd75","5a3b97b70b1c961c7b7f161bb45b8929","0eb4b4b96c090bd5e4f301ab9df17529","e4a1a31769a97eb11ff157b850c3a91f","b26e5b0b456ed65f7170fedc93fd51d0","1c113ec0fa1b1f932c739636cd0bc5ac","39b17d83bf1767c3f698c640ba8bfa98","b70dee362a0f686f92de9a8a863a9a6a","13af187330047aa1c30e1a1edce0fb64","27ff68943cf38df2edfd28f206faa862","221a3bef19bf31a6d3a775cb7cef7a4e","a3edc409aa9cd7f55360c329e965c17d","53e0b7beb03e3cf735f434700df8c2fc","07211859627af4e124657bb729ef4172","5be9fe999f6161bc99add3531a7ffa45","06e0880f20433e01fd59550ca8509a37","64fb4fd838afef9b7c1fafef6f3687c5","451d3416944cf2d17ed532c87b0dbc24","bedf5e7b43829351cf907f8b2b3621d2","62783e4edc69a5fc78121bc750f2c4bf","d93e1b0720f8d631554ef86707d8cf3d","f4d7ad0fc2301c6cab7d0dcf0465491b","1f6f8c894853b13c9c9bb83787a2d572","588b21219d8bc4e76a3d03ccc858c1dd","457d6b4295961f51c38bf00a87899482","1603a9eff2bce8b0d24dfad9b25394fe","0678990db938a8f31c7ed1be31a8a0eb","e89cfd4f0155a67ff7ba05380fae621c","6051f9b9776d0d7319ef356688400b2f","c65c8888efd154a963c621fb2587d85b","b8d18dbb64e9d2f2b96af4aa0296e5ca","e02eac5572921cc4127280aafa5c8979","684dc1006df37f9f59a4cb258f164faf","949576412bc5743e2a9dbb7f4674c51b","91d2a40e0c011c1064542943e7ca5008","aa5f7e13b364bd605cfc97c20708eb1f","e61f53b8ea2e4c5c9d2b31c2b653ac77","73f94337bf754d267a9fc87b0836fee9","dd7dc0743850dd7a26d4ea8e78c70267","5d0c9b5b29647a9391f2b1b7a88b9dfc","222e4c9b23e479206bda39451a6c9865","d0d79c6abb7c583a7b45fb90c22875f6","f5ee44ff77abb348458503d011fcdfa6","c888a1e18b7fb03f18e21d1ed29fc60b","0ca729987727cd554344cb5b5c62888f","9fe747a6be235a40bf869350e514dd5b","cd2d57347b9e915e216926f6b11fd49b","a8518bb6fcaa8c99009a34c2445f9f6d","572bb9c5b092d4deed837e806bf70203","ea7ff22095868b1f3a5489cd47e2c83f","ec9471bed021e73fb6614afb7de5be3e","309ce2c6a8c28cd6861da4153de38a22","147e66a856cdd92ecb3717f22443eb57","66d3271550c8abf2363877149c445915","1d315f1ffc4e98a4459c016d31a3132e","893e638ea0af16a436d969e01f8ccff9","d975ca5cb3de3ce4644287cfd68a9df7","b7875cccb8922420b1615eff7ab0d53d","6a97c371a112524b5cbd3e70cabb62a5","6c66fc383b85637f9728c4724cc92870","ff61f2a8f9201f6b8f95d20f0106ab3f","1d1fa3e3cae6ed1d0736c56a4ae7ffd9","e9f08ad02958f2f77c9de93dc649c22c","da8c13adc03136b624bc83bbcaad4ffb","02a0a6d3a1157a4a160ec055b7ec56b6","e50dd2e9c2aa818fb3d8d45e6331dc49","adb6bad7016ed2453bf33c8694ba125b","b14561e896fd3d945889ae9d6a1ab1f2","ba41d8568f172038c88e23debe7ae5f6","ca20dc5ca6172467cade003eddd66807","506f02c8d45e8d609824bddecd40f8d5","f9f7bd1dfbcd9a05679bfd7612cc54bc","9bca8db9310dba97f89f292a50e423cb","aa0883b0fe11d69a73f5e86d6530ce5b","3f3aca72bcb2d78a143fa9b5989e9aac","e53a34e546b28997777c6a69c84b60f7","03bf35b329ad2d4e6f7037e8bc3c62e9","dee9dd56d6d9ffa53f634b289f5874c1","384f7add85549f9a9f75e4b8603161e1","b953a850d817cd834b9e78acd82dcd96","471d09439155133307dc12d1d95dd630","7fe026bfc31c7a346d0dbc130754831d","89feb0ff1e395813d6b18d7c11cffd09","6271c9efa1b066eb7f750e9f17c1c5b0","ca1efc536ca594ebdcedbca14bd23609","b986d4b0c5d0d081dcc6d19093a17cd7","6c299c5bd0b0bcc76c0e449258ecb180","cd8395bd933302193f58c77cc234cc74","ee99c36a2c33d30c613e68888c952a11","020ef980cacbc240a0ac7b343c74c0e4","2eee5ef67978b70b4eb11b28afff2eea","d85114a960fdc2d001aaeae25966ace1","57ba45789ccee5360f54d154ff13d49e","19cd68f09ee4c528a628ee4cd2fa8235","0d8b34c3b58c4f75bfcfe84ea5f014ca","6541bb0f3eacd5a49b681ac10278d8f8","6a813afadbfbc8b6f61232276198e82f","90cf819d369f1042f0b96ba99d373de9","c1909b7cafa0118595cc1e32d649e1e0","955ca11059d9278c4a3828b60221c96b","52fbbcfb77a44519827547d5a9f69730","2ddabfdda02f72ba144108c52a8938aa","aa8120b0cb4e2dff41fed3431f938d9c","2315776c997e53628826d4628d4da768","541eb20aa7f2249ec33dd9537381a5e3","98d99e78178fe2b15420ae9da2d49b27","84f6a8634c89ccd851ef023d93e29b94","8b770d23d22b43d228ec89ff22877498","1e9893464d1b7df61e6b8cac97bf54df","f17e23475f0dba3213c43e1bf66a0be1","edceaa3db2308e913ca96ffa37e4f47e","a5eb8e067972c622746427a614213e4b","1c4a44694bd1539b402d5e5bc147c6d9","021b8a2deea6d916b6a316f39dab05e2","ceb1540c7b9e680a3d5f7072a5739295","3b2e422250bda6f6c2a3332e8fce17c9","0f7a515a7d86cccc20b708581b6d3a8e","30e9a2d31089865ed4470099ecd8a3a7","dc8abe81993ccb2473284ecbc1c2c8aa","c0a07f253a8ac01a81a3e74c0ce1f943","d20113bf5151353760fdba4a2ab5627a","181e1f55c293448dbbb259c6fdfdc143","b57e103cf8b132aa2f3c62740892c08f","ee4448fe851bf61f41b89631e099056b","72b821a83f73acd28e705af1c1d80d95","6741d92f08e4dea68e64d113a4a4ae82","2829260cf5ea4a94d9477423168986f0","3635108fa7eaa085fd17a2ddbcb4e04b","69dceeb6936304bc1f00d7da63caa206","d82c1b6a02e25d0fa8f28c29de01a914","77dcfa82c3612a4d9f38f4e5c3a58b1f","25ed431d309e7a007136b3ed5a8ca150","9f06dfcb714367f4d06def2218905b88","0916a52c6a5c1a9b9bcfa57db021c7f0","eaee20a7dc7e097d996a2853af8d9b05","397dffb688778307fa9e75c7c77f3449","ed6c7a6bb9518e0ed187fe34f2930f93","1aefbb3614ec9dfabd8cb7491a7ed032","cf1d5847dda17ea14e274f570697db89","5249a80f54fe1d50b4bf4a1aa8c13795","5e28885fc3ff2880391198b4190cbf66","4274b8bb6f99976cf970910f79062c76","677b29f2ebe800f60e53d84d36fe42c5","c05f414f5f9e658d8e306317f5713a58","8cf72b98b8975df42b77b2b8b4d10267","a776db6668dded14db5373b45ac8edf7","e1bce41afcc300754160d9f77fe2cab7","e2c20aeeb952f7840a072d46b8621e89","1f45ad5ee6a1eccbbedf5980ff455d12","4d61726c4430cb8f2e5791e6b16ae843","70f0c38b8a88263ee4a20de2597f8c18","be6aa66fb5df277c1e2d24b3bdcb0101","1c737067e71fbe4ad6b2f99310ac2877","0b0d6083fbf883fbb490ab4558675569","0c920d62d2be8e809f0c4852149dc4a2","493aa2b870721c613bcb9cc688d94338","2f7a9816cd371cc79b213a980fb0e36f","f8f98b05333c4b884b86726c0ecd21eb","f256d5a8622eb2887c530ff7ceb9f42d","1d0cb52e7f8cae97663e3dbb533cdeac","c71724dc4f722f6517f0f734d1243e19","7f27c9aee0eb628715692ff676a91040","025c6f4f523302e90d7c551f13fc1073","9ec0adceb4b76f6c2a4e1a9fe0f1c6c6","a7e35c39dc84ee1b1e03705cf101ae33","280824992521b07d5624cce3da4134ad","e4a3c8900cbd419f070b5359998cfd57","dc885b14dd4ac8067080718359f81b61","2f765e1cc54880a5fb50be26ebf8f7ac","e62571a379a503421a1dc2d626463e97","189a5574b2dc5024f434a79703a88ade","163f811af2cc314cea1c301260e4a185","a8413f8461fd1104ceb05f1ea865e7a0","c54ffa9e0342d8b4511162f8c73ad5db","2e9b69cd597279ef9db9c0986a5c1da1","20dae87887d531b35da61d0e31378282","4025ff750f4621edbb57fd71c5fc4aa3","3c512df206d338f34a447cd2a7dcda53","7a723f321fb5050fdab70135c14b9e53","ce26ec4d6bf1b1d3804e398475aae4e6","ed9f8994a8efa69f2f0daee7b7fa3e2c","19225480898a546b1cd33280f67c3e33","1082a8761aac0365e20b0561200d02d4","0f390f694465566391cc962bb3a431fb","322e8cbc6eab41611f02bac7835070b9","b077489bc405a5a2b100c8b269703bf1","ae5d133bb5573a859e4f6c14883b2bfc","112e224a06a83b692cc7636d874c53a2","292b88dd9a73acea1cd69579e3c38c3e","39319886882ac6fc271600a1b617e8bb","4fe19283195949277a3f9c3e7bf93987","5ecf49371b3e028e63b383f7d2442244","acc97df1ca7a01a2a672fc7b46f0c77a","581c271d2141ac848e110559e1b584e7","b64e3671c6a6875e4cc35cf686367eac","2f144a873452ae4837acb7d48d5f158e","d4941f1839793e4a31afc34ffd942eab","88ca703ab1c92e117a16f3ea0946cf66","ac92a9c63cd87b6587243223a3af2b7f","de7f896ec2c4bcb2bc5f4ddfa1a14fcc","e5c42e71e5a1f5f3ee11ef12f3696500","0c5c34e854507d5e5a9e0adb0242914f","d4b26e640ebc4c09d28d2ee306158053","af43f178c90a4a9b1bb17eac06b07b15","b3bac667d459341312056b8aa0860b23","e1922e851841fea5f423cf6304b9022f","ed85d83e045cfb560dabb7844d688a22","ade011ef94f50ac1dabdd0baad2bec96","22ad8e7ab49d402187dee129b2427bba","78a671be830cb29ef7980ecf286f0878","15b8f55fb419a6c6ddf1a1d4be8d6495","497bb1bf7aeb362477a1a54baf5754d0","d83938d5e15a1cac5e972d5a3ccc307d","b7c162f4dfd21f8009c4ad5472c247bb","e6a104837a204a8be6d6f7e0e49d15a5","a2ddb5808a908b3ec54737f5d410ca7e","baa21a01d367f79dc53fc4ed7eecf4cd","4423217a2805591ac943b522ae73ccf9","1d23c7f93a3219f36baeb46e081e58cc","ced6ef0d25977b9f98fb132574c77f7d","132ab42f83c69ffd43744d212d3eb60c","2240303a1ac478732ebab3715d8383f9","d01d79dd83b9f72cfe51d230c203a635","1ee3b2eb2c91200854009b32587c4f99","ef8d5145fae2111ef49ff3f780c06dba","984e1bb729695b4888fce54deecb2d75","1be111a6f1165aabb9350bb5b536c521","23728ecbabb873f8c1477e6f815df661","867cb09a71d941aa3d724e4c430c14e9","723e7455327155928c9a9ee42dc332db","c33fb752bbd90acbb93b7692aa78040e","a73d29ad36d8aa82da961345a32c58c0","a848424cd0d72c5159e9978e921016cf","d3af28e4343abf0ed708105097758482","d2882da589a56d3fdb2e3a211211e317","ff4cf8c5d8594714e8629278c96363f8")
+China_deseq_filter_5 = pop_taxa(China_bs_filter, badTaxa)
+#check sample_sums for min seq depth
+#8000 as depth (keeping all samples)
+China_deseq_filter_5_depth8000 <- rarefy_even_depth(China_deseq_filter_5, sample.size = 8000, rngseed = 711, replace = FALSE, trimOTUs = TRUE, verbose = TRUE)
+#test
+df = data.frame(sample_data(China_deseq_filter_5_depth8000))
+OTU = t(as(otu_table(China_deseq_filter_5_depth8000),"matrix"))
+China_deseq_filter_top400_depth8000_PCoA_2_adonis <- adonis(OTU ~ Treatment, data = df, method = "bray")
